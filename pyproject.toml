@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "weather-products"
+version = "0.1.0"
+description = "Weather products targeted towards snow forecasts in Western US"
+authors = ["Daniel Zurawski <djzurawski@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+requests = "^2.22.0"
+cfgrib = "^0.9.7"
+metpy = "^0.12.0"
+cartopy = "^0.17.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
