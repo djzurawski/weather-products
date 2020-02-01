@@ -21,6 +21,7 @@ import cfgrib
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy.io.shapereader as shpreader
+from cartopy.feature import NaturalEarthFeature
 
 
 CYCLES = ["00", "12"]
@@ -35,12 +36,12 @@ IMAGE_DIR = "href_prod/images"
 grib_download_session = FuturesSession(max_workers=2)
 
 
-COLORAO_EXTENT = [-109.5, -103.1, 35.4, 42.2]
+COLORADO_EXTENT = [-109.5, -103.1, 35.4, 42.2]
 DOMAIN_EXTENT = [-113, -103.1, 35.4, 42.2]
+CONUS_EXTENT= [-120, -74, 23, 51]
 
-COUNTY_SHAPEFILE = 'resources/countyp010g.shp'
-STATE_SHAPEFILE = 'resources/statesp010g.shp'
-WATER_SHAPEFILE =  'resources/wtrbdyp010g.shp'
+COUNTY_SHAPEFILE = 'resources/cb_2018_us_county_5m.shp'
+
 CAIC_PRECIP_CLEVS = [ 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2, 3, 4, 5]
 CAIC_SNOW_CLEVS = [ 0.1, 0.2, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50]
 CAIC_PRECIP_CMAP_DATA = np.array([
@@ -157,62 +158,100 @@ def download_latest_grib():
 
     for future, fname, cycle in futures:
         with open(f'{GRIB_DIR}/{cycle}z/{fname}', 'wb') as f:
-            print(fname)
+            print("Downloading ", fname)
             f.write(future.result().content)
 
 
 def create_feature(shapefile, projection=ccrs.PlateCarree()):
-	reader = shpreader.Reader(shapefile)
-	feature = list(reader.geometries())
-	return cfeature.ShapelyFeature(feature, projection)
+    reader = shpreader.Reader(shapefile)
+    feature = list(reader.geometries())
+    return cfeature.ShapelyFeature(feature, projection)
 
 
-def basic_surface_plot(x,y,z, extent=None, colormap = None, color_levels = None, num_colors = 15):
+class HrefSurfaceForecast:
+    NS_TO_MINUTE = 1E-9 / 60
+    def __init__(self, dataset):
+        self.forecast = cfgrib.open_dataset(dataset, backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
+        self.model = "HREF"
+        self.lats = self.forecast.latitude
+        self.lons = self.forecast.longitude
+        self.initialized = self.forecast.time
+        self.fhour = int(self.forecast.step * (self.NS_TO_MINUTE / 60))
+        self.fminute = int(self.forecast.step * self.NS_TO_MINUTE)
+        self.valid = self.initialized + np.timedelta64(self.fminute,'m')
 
-    fig = plt.figure()
-    projection=ccrs.AlbersEqualArea()
-    #projection=ccrs.LambertConformal()
-    #ax = plt.axes(projection=ccrs.PlateCarree())
-    ax = plt.axes(projection=projection)
-
-    if extent is not None:
-        ax.set_extent(extent)
-    counties = create_feature(COUNTY_SHAPEFILE, projection=projection)
-    states = create_feature(STATE_SHAPEFILE, projection=projection)
-    ax.add_feature(counties, facecolor='none', edgecolor='gray')
-    ax.add_feature(states, facecolor='none', edgecolor='black')
-    #ax.add_feature(cfeature.LAKES, facecolor='none', edgecolor='blue')
-
-
-    if (colormap is not None) and (color_levels is not None):
-        cmap = mcolors.ListedColormap(colormap)
-        norm = mcolors.BoundaryNorm(color_levels, cmap.N)
-        cs = ax.contourf(x, y, z, color_levels, cmap=cmap, norm=norm,)
-    else:
-        cs = ax.contourf(x,y,z, num_colors)
-
-    cbar = plt.colorbar(cs, orientation='vertical')
-    cbar.set_label(z.units)
-    return fig
+    def total_precip(self):
+        WATER_DENSITY = 997 * units('kg/m^3')
+        data = self.forecast.tp.values * units('kg/m^2')
+        precip =  data / WATER_DENSITY
+        precip = precip.to('in')
+        return precip
 
 
-def href_precip(dataset):
-    #nc = cfgrib.open_dataset("href_prod/grib/00z/href.t00z.conus.pmmn.f01.grib2", backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
-    nc = cfgrib.open_dataset(dataset, backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
+class SurfacePlot:
+    def __init__(self,
+                 x,y,z,
+                 extent=CONUS_EXTENT,
+                 colormap = None,
+                 color_levels = None,
+                 num_colors = 15,
+                 figsize=(18,10),
+                 central_longitude=-96,
+                 display_counties = False):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.extent = extent
+        self.colormap=colormap
+        self.color_levels=color_levels
+        self.num_colors=num_colors
+        self.figsize=figsize
+        self.central_longitude=central_longitude
+        self.display_counties = False
+        self.plot = None
+
+    def create_plot(self):
+        fig = plt.figure(figsize=self.figsize)
+        data_projection=ccrs.LambertConformal(central_longitude=self.central_longitude)
+        ax = plt.axes(projection=data_projection)
+
+        if self.extent is not None:
+            ax.set_extent(self.extent)
+
+        if self.display_counties:
+            counties = create_feature(COUNTY_SHAPEFILE)
+            ax.add_feature(counties, facecolor='none', edgecolor='gray',)
+
+        states = NaturalEarthFeature(category="cultural", scale="50m",
+                                     facecolor="none",
+                                     edgecolor='black',
+                                     name="admin_1_states_provinces_shp")
+        ax.add_feature(cfeature.LAKES, facecolor='none', edgecolor='blue', linewidth=0.5)
+        ax.add_feature(states, facecolor='none', edgecolor='gray')
+        ax.coastlines('50m', linewidth=0.8)
 
 
-    WATER_DENSITY = 997 * units('kg/m^3')
+        if (self.colormap is not None) and (self.color_levels is not None):
+            cmap = mcolors.ListedColormap(self.colormap)
+            norm = mcolors.BoundaryNorm(self.color_levels, cmap.N)
+            cs = ax.contourf(self.x, self.y, self.z, self.color_levels, cmap=cmap, norm=norm, transform=ccrs.PlateCarree())
+        else:
+            cs = ax.contourf(self.x, self.y, self.z, self.num_colors, transform=ccrs.PlateCarree())
 
-    data = nc['tp'].values * units('kg/m^2')
-    #x = nc['tp'].longitude - 360 #convert to proper longitude
-    #y = nc['tp'].latitude
+        cbar = plt.colorbar(cs, orientation='vertical')
+        cbar.set_label(self.z.units)
+        self.plot = fig
 
-    precip =  data / WATER_DENSITY
-    precip = precip.to('in')
+    def show_plot(self):
+        self.create_plot()
+        self.plot.show()
 
-    return precip
+    def save_plot(self, path):
+        self.create_plot()
+        self.plot.savefig(path, bbox_inches='tight')
 
 
+"""
 def accumulate_precip(product, cycle):
 
     cycle = str(cycle).zfill(2)
@@ -220,20 +259,14 @@ def accumulate_precip(product, cycle):
     total_precip = 0
     for fhour in range(1, FORECAST_LENGTH + 1):
         fname = grib_filename(product, cycle, fhour)
+        fhour = str(fhour).zfill(2)
         dataset = f'{GRIB_DIR}/{cycle}z/{fname}'
-        total_precip += href_precip(dataset)
+        x,y,p = href_precip(dataset)
+        total_precip += p
+        f = basic_surface_plot(x,y,total_precip, colormap=WEATHERBELL_PRECIP_CMAP_DATA, color_levels=WEATHERBELL_PRECIP_CLEVS, extent=COLORAO_EXTENT)
+        f.savefig(f"href_prod/images/{product}-{cycle}-{fhour}.png", bbox_inches='tight')
+        plt.close()
+
 
     return total_precip
-
-
-#nc = cfgrib.open_dataset("href_prod/grib/00z/href.t00z.conus.pmmn.f01.grib2", backend_kwargs={'parallel':True,'filter_by_keys': {'typeOfLevel': 'surface'}})
-#nc = xr.open_dataset("href_prod/grib/00z/href.t00z.conus.pmmn.f01.grib2", engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
-#x = nc['tp'].longitude - 360 #convert to proper longitude
-#y = nc['tp'].latitude
-
-#p = accumulate_precip('mean', 0)
-#p = href_precip("href_prod/grib/00z/href.t00z.conus.pmmn.f01.grib2")
-
-#f = basic_surface_plot(x,y,p, extent=None, colormap=WEATHERBELL_PRECIP_CMAP_DATA, color_levels=WEATHERBELL_PRECIP_CLEVS)
-#f = basic_surface_plot(x,y,p, extent=None, colormap=WEATHERBELL_PRECIP_CMAP_DATA)
-#plt.show()
+"""

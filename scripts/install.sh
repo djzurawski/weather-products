@@ -5,6 +5,10 @@ source $HOME/.poetry/env
 
 sudo apt-get install -y python3-venv libproj-dev
 
+poetry install
+
+pip uninstall shapely
+pip install --no-binary :all: shapely
 
 curl -s  https://prd-tnm.s3.amazonaws.com/StagedProducts/Small-scale/data/Boundaries/countyp010g.shp_nt00934.tar.gz | tar xvz -C  $(dirname $0)/../resources
 
