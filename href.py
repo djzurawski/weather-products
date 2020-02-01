@@ -182,10 +182,10 @@ class HrefSurfaceForecast:
 
     def total_precip(self):
         WATER_DENSITY = 997 * units('kg/m^3')
-        data = self.forecast.tp.values * units('kg/m^2')
-        precip =  data / WATER_DENSITY
-        precip = precip.to('in')
-        return precip
+        data = self.forecast.tp * units('kg/m^2')
+        precip_m =  data / WATER_DENSITY
+        precip_in = precip_m / (0.0254 * units('m/in'))
+        return precip_in
 
 
 class SurfacePlot:
@@ -211,6 +211,7 @@ class SurfacePlot:
         self.plot = None
 
     def create_plot(self):
+
         fig = plt.figure(figsize=self.figsize)
         data_projection=ccrs.LambertConformal(central_longitude=self.central_longitude)
         ax = plt.axes(projection=data_projection)
@@ -226,8 +227,11 @@ class SurfacePlot:
                                      facecolor="none",
                                      edgecolor='black',
                                      name="admin_1_states_provinces_shp")
-        ax.add_feature(cfeature.LAKES, facecolor='none', edgecolor='blue', linewidth=0.5)
-        ax.add_feature(states, facecolor='none', edgecolor='gray')
+        lakes = NaturalEarthFeature('physical', 'lakes', '50m',
+                                    edgecolor='blue',
+                                    facecolor='none')
+        ax.add_feature(lakes, facecolor='none', edgecolor='blue', linewidth=0.5)
+        ax.add_feature(states, facecolor='none', edgecolor='black')
         ax.coastlines('50m', linewidth=0.8)
 
 
@@ -235,11 +239,12 @@ class SurfacePlot:
             cmap = mcolors.ListedColormap(self.colormap)
             norm = mcolors.BoundaryNorm(self.color_levels, cmap.N)
             cs = ax.contourf(self.x, self.y, self.z, self.color_levels, cmap=cmap, norm=norm, transform=ccrs.PlateCarree())
+
         else:
             cs = ax.contourf(self.x, self.y, self.z, self.num_colors, transform=ccrs.PlateCarree())
 
         cbar = plt.colorbar(cs, orientation='vertical')
-        cbar.set_label(self.z.units)
+        cbar.set_label(self.z.data.units)
         self.plot = fig
 
     def show_plot(self):
@@ -249,10 +254,10 @@ class SurfacePlot:
     def save_plot(self, path):
         self.create_plot()
         self.plot.savefig(path, bbox_inches='tight')
+        plt.close()
 
 
-"""
-def accumulate_precip(product, cycle):
+def save_accumulated_precip_plots(product, cycle):
 
     cycle = str(cycle).zfill(2)
 
@@ -261,12 +266,13 @@ def accumulate_precip(product, cycle):
         fname = grib_filename(product, cycle, fhour)
         fhour = str(fhour).zfill(2)
         dataset = f'{GRIB_DIR}/{cycle}z/{fname}'
-        x,y,p = href_precip(dataset)
-        total_precip += p
-        f = basic_surface_plot(x,y,total_precip, colormap=WEATHERBELL_PRECIP_CMAP_DATA, color_levels=WEATHERBELL_PRECIP_CLEVS, extent=COLORAO_EXTENT)
-        f.savefig(f"href_prod/images/{product}-{cycle}-{fhour}.png", bbox_inches='tight')
-        plt.close()
-
+        forecast = HrefSurfaceForecast(dataset)
+        total_precip += forecast.total_precip()
+        plot = SurfacePlot(forecast.lons, forecast.lats, total_precip,
+                           colormap=WEATHERBELL_PRECIP_CMAP_DATA,
+                           color_levels=WEATHERBELL_PRECIP_CLEVS,)
+        plot.save_plot(f"href_prod/images/{product}-{cycle}-{fhour}.png")
 
     return total_precip
-"""
+
+#f = HrefSurfaceForecast("href_prod/grib/12z/href.t12z.conus.mean.f36.grib2")
