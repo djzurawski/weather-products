@@ -33,7 +33,7 @@ BASE_URL = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hiresw/prod"
 GRIB_DIR = "href_prod/grib"
 IMAGE_DIR = "href_prod/images"
 
-grib_download_session = FuturesSession(max_workers=2)
+grib_download_session = FuturesSession(max_workers=4)
 
 
 COLORADO_EXTENT = [-109.5, -103.1, 35.4, 42.2]
@@ -180,12 +180,27 @@ class HrefSurfaceForecast:
         self.fminute = int(self.forecast.step * self.NS_TO_MINUTE)
         self.valid = self.initialized + np.timedelta64(self.fminute,'m')
 
+
     def total_precip(self):
         WATER_DENSITY = 997 * units('kg/m^3')
         data = self.forecast.tp * units('kg/m^2')
         precip_m =  data / WATER_DENSITY
         precip_in = precip_m / (0.0254 * units('m/in'))
         return precip_in
+
+
+def plot_title(init,
+               valid,
+               fhour,
+               field_name,
+               model_name="",
+               field_units=""):
+
+    init = np.datetime_as_string(init, unit='h', timezone='UTC')
+    valid = np.datetime_as_string(valid, unit='h', timezone='UTC')
+    fhour = str(fhour).zfill(2)
+
+    return f"{model_name}    Init: {init}     Valid: {valid}     {field_name} ({field_units})    Hour: {fhour}"
 
 
 class SurfacePlot:
@@ -197,7 +212,8 @@ class SurfacePlot:
                  num_colors = 15,
                  figsize=(18,10),
                  central_longitude=-96,
-                 display_counties = False):
+                 display_counties = False,
+                 title = None):
         self.x = x
         self.y = y
         self.z = z
@@ -208,6 +224,7 @@ class SurfacePlot:
         self.figsize=figsize
         self.central_longitude=central_longitude
         self.display_counties = False
+        self.title = title
         self.plot = None
 
     def create_plot(self):
@@ -245,6 +262,11 @@ class SurfacePlot:
 
         cbar = plt.colorbar(cs, orientation='vertical')
         cbar.set_label(self.z.data.units)
+
+        if self.title is not None:
+            plt.title(self.title)
+
+
         self.plot = fig
 
     def show_plot(self):
@@ -268,11 +290,16 @@ def save_accumulated_precip_plots(product, cycle):
         dataset = f'{GRIB_DIR}/{cycle}z/{fname}'
         forecast = HrefSurfaceForecast(dataset)
         total_precip += forecast.total_precip()
+        title = plot_title(forecast.initialized,
+                           forecast.valid,
+                           forecast.fhour,
+                           field_name = f"Accumulated Precip {product}",
+                           field_units = 'in',
+                           model_name = "HREF")
         plot = SurfacePlot(forecast.lons, forecast.lats, total_precip,
                            colormap=WEATHERBELL_PRECIP_CMAP_DATA,
-                           color_levels=WEATHERBELL_PRECIP_CLEVS,)
+                           color_levels=WEATHERBELL_PRECIP_CLEVS,
+                           title=title)
         plot.save_plot(f"href_prod/images/{product}-{cycle}-{fhour}.png")
 
     return total_precip
-
-#f = HrefSurfaceForecast("href_prod/grib/12z/href.t12z.conus.mean.f36.grib2")
