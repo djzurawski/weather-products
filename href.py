@@ -22,6 +22,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy.io.shapereader as shpreader
 from cartopy.feature import NaturalEarthFeature
+import basemap
 
 
 CYCLES = ["00", "12"]
@@ -39,6 +40,7 @@ grib_download_session = FuturesSession(max_workers=4)
 COLORADO_EXTENT = [-109.5, -103.1, 35.4, 42.2]
 DOMAIN_EXTENT = [-113, -103.1, 35.4, 42.2]
 CONUS_EXTENT= [-120, -74, 23, 51]
+WASHINGTON_EXTENT = [-126, -116, 45, 50.5]
 
 COUNTY_SHAPEFILE = 'resources/cb_2018_us_county_5m.shp'
 
@@ -223,7 +225,7 @@ class SurfacePlot:
         self.num_colors=num_colors
         self.figsize=figsize
         self.central_longitude=central_longitude
-        self.display_counties = False
+        self.display_counties = display_counties
         self.title = title
         self.plot = None
 
@@ -240,16 +242,18 @@ class SurfacePlot:
             counties = create_feature(COUNTY_SHAPEFILE)
             ax.add_feature(counties, facecolor='none', edgecolor='gray',)
 
-        states = NaturalEarthFeature(category="cultural", scale="50m",
+
+        border_scale = '50m'
+        states = NaturalEarthFeature(category="cultural", scale=border_scale,
                                      facecolor="none",
                                      edgecolor='black',
                                      name="admin_1_states_provinces_shp")
-        lakes = NaturalEarthFeature('physical', 'lakes', '50m',
+        lakes = NaturalEarthFeature('physical', 'lakes', border_scale,
                                     edgecolor='blue',
                                     facecolor='none')
         ax.add_feature(lakes, facecolor='none', edgecolor='blue', linewidth=0.5)
         ax.add_feature(states, facecolor='none', edgecolor='black')
-        ax.coastlines('50m', linewidth=0.8)
+        ax.coastlines(border_scale, linewidth=0.8)
 
 
         if (self.colormap is not None) and (self.color_levels is not None):
@@ -260,7 +264,11 @@ class SurfacePlot:
         else:
             cs = ax.contourf(self.x, self.y, self.z, self.num_colors, transform=ccrs.PlateCarree())
 
-        cbar = plt.colorbar(cs, orientation='vertical')
+        if isinstance(self.color_levels, list):
+            cbar = plt.colorbar(cs, orientation='vertical', ticks=self.color_levels)
+
+        else:
+            cbar = plt.colorbar(cs, orientation='vertical')
         cbar.set_label(self.z.data.units)
 
         if self.title is not None:
@@ -299,7 +307,14 @@ def save_accumulated_precip_plots(product, cycle):
         plot = SurfacePlot(forecast.lons, forecast.lats, total_precip,
                            colormap=WEATHERBELL_PRECIP_CMAP_DATA,
                            color_levels=WEATHERBELL_PRECIP_CLEVS,
+                           #extent=WASHINGTON_EXTENT,
+                           #central_longitude=-121,
+                           display_counties=True,
                            title=title)
         plot.save_plot(f"href_prod/images/{product}-{cycle}-{fhour}.png")
 
     return total_precip
+
+
+#save_accumulated_precip_plots("mean",12)
+#f = HrefSurfaceForecast("href_prod/grib/12z/href.t12z.conus.mean.f36.grib2")
