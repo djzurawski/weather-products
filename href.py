@@ -49,6 +49,7 @@ DOMAIN_EXTENT = [-113, -103.1, 35.4, 42.2]
 CONUS_EXTENT= [-120, -74, 23, 51]
 WASHINGTON_EXTENT = [-126, -116, 45, 50.5]
 
+
 COUNTY_SHAPEFILE = 'resources/cb_2018_us_county_20m.shp'
 
 CAIC_PRECIP_CLEVS = [ 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2, 3, 4, 5]
@@ -317,6 +318,7 @@ def save_accumulated_precip_plots(product, cycle):
 
     total_precip = 0
     for fhour in range(1, FORECAST_LENGTH + 1):
+        print('Processing', product, fhour)
         fname = grib_filename(product, cycle, fhour)
         fhour = str(fhour).zfill(2)
         dataset = f'{GRIB_DIR}/{cycle}z/{fname}'
@@ -520,3 +522,4 @@ class HrefSurfaceForecast2:
 #download_latest_grib()
 #download_gribs("20200203", 00)
 #forecasts.plot_point_precipitation(-105.764, 39.892, location_name="Winter Park")
+
