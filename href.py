@@ -51,6 +51,7 @@ WASHINGTON_EXTENT = [-126, -116, 45, 50.5]
 
 
 COUNTY_SHAPEFILE = 'resources/cb_2018_us_county_20m.shp'
+#COUNTY_SHAPEFILE = 'resources/countyp010g.shp'
 
 CAIC_PRECIP_CLEVS = [ 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2, 3, 4, 5]
 CAIC_SNOW_CLEVS = [ 0.1, 0.2, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50]
@@ -209,6 +210,16 @@ class HrefSurfaceForecast:
         return precip_in
 
 
+def precip_mass_to_in(precip_m):
+    WATER_DENSITY = 997 * units('kg/m^3')
+
+    data = precip_m * units('kg/m^2')
+    precip_m =  data / WATER_DENSITY
+    precip_in = precip_m / (0.0254 * units('m/in'))
+    return precip_in
+
+
+
 def plot_title(init,
                valid,
                fhour,
@@ -283,8 +294,10 @@ class SurfacePlot:
             cmap = mcolors.ListedColormap(self.colormap)
             norm = mcolors.BoundaryNorm(self.color_levels, cmap.N)
             cs = ax.contourf(self.x, self.y, self.z, self.color_levels, cmap=cmap, norm=norm, transform=ccrs.PlateCarree())
+            #cs = ax.pcolormesh(self.x, self.y, self.z, cmap=cmap, norm=norm, transform=ccrs.PlateCarree())
         else:
             cs = ax.contourf(self.x, self.y, self.z, self.num_colors, transform=ccrs.PlateCarree())
+            #cs = ax.pcolormesh(self.x, self.y, self.z, transform=ccrs.PlateCarree())
 
         if isinstance(self.color_levels, list):
             cbar = plt.colorbar(cs, orientation='vertical', ticks=self.color_levels)
@@ -310,11 +323,85 @@ class SurfacePlot:
         self.plot.savefig(path, bbox_inches='tight')
         plt.close()
 
+def crop_dataset(forecast, domain):
+    west,east,south,north = domain.extent
+    west = west % 360
+    east = east % 360
+
+    mask_lon = (forecast.longitude >= west) & (forecast.longitude <= east)
+    mask_lat = (forecast.latitude >= south) & (forecast.latitude <= north)
+
+    cropped = forecast.where(mask_lon & mask_lat, drop=True)
+    return cropped
+
+
+def save_accumulated_precip_plots3(forecast, product='mean'):
+    areas = [basemap.COLORADO, basemap.WASATCH]
+
+    acc_precip = forecast.tp.cumsum(axis=0)
+
+    init_time = forecast.valid_time[0] - np.timedelta64(1, 'h')
+    cycle = get_datetime64_hour(forecast.valid_time[0])
+    for i, valid_time in enumerate(acc_precip.valid_time):
+        print('saving', i)
+        fhour = str(i+1).zfill(2)
+
+        title = plot_title(init_time,
+                           acc_precip.valid_time[i],
+                           i + 1,
+                           field_name = f"Accumulated Precip {product}",
+                           field_units = 'in',
+                           model_name = "HREF")
+
+        for area in areas:
+            cropped = crop_dataset(acc_precip[i], area)
+            plot = SurfacePlot(cropped.longitude, cropped.latitude, cropped,
+                               colormap=PRECIP_CMAP_DATA,
+                               color_levels=PRECIP_CLEVS,
+                               extent=area.extent,
+                               central_longitude=area.central_longitude,
+                               display_counties=area.display_counties,
+                               title=title,
+                               units='in')
+            plot.save_plot(f"href_prod/images/{area.name}-{cycle}z-{product}-{fhour}.png")
+
+
+
+def save_accumulated_precip_plots2(forecast, product='mean'):
+    areas = [basemap.COLORADO, basemap.WASATCH]
+    total_precip = 0
+    init_time = forecast.valid_time[0] - np.timedelta64(1, 'h')
+    cycle = get_datetime64_hour(forecast.valid_time[0])
+    for i, valid_time in enumerate(forecast.valid_time):
+        fhour = str(i+1).zfill(2)
+        total_precip += precip_mass_to_in(forecast.tp[i])
+
+        title = plot_title(init_time,
+                           forecast.valid_time[i],
+                           i + 1,
+                           field_name = f"Accumulated Precip {product}",
+                           field_units = 'in',
+                           model_name = "HREF")
+
+        for area in areas:
+            plot = SurfacePlot(forecast.longitude, forecast.latitude, total_precip,
+                               colormap=PRECIP_CMAP_DATA,
+                               color_levels=PRECIP_CLEVS,
+                               extent=area.extent,
+                               central_longitude=area.central_longitude,
+                               display_counties=area.display_counties,
+                               title=title,
+                               units='in')
+            plot.save_plot(f"href_prod/images/{area.name}-{cycle}z-{product}-{fhour}.png")
+
+
+
+
 
 def save_accumulated_precip_plots(product, cycle):
 
     cycle = str(cycle).zfill(2)
-    areas = [basemap.ROBINSON_COLORADO, basemap.ROBINSON_WASATCH]
+    areas = [basemap.COLORADO, basemap.WASATCH]
 
     total_precip = 0
     for fhour in range(1, FORECAST_LENGTH + 1):
@@ -346,7 +433,7 @@ def save_accumulated_precip_plots(product, cycle):
 
 def generate_all_plots(cycle):
 
-    pool = Pool(len(PRODUCTS))
+    pool = Pool()
     cycles = [cycle] * len(PRODUCTS)
     args = [pair for pair in zip(PRODUCTS, cycles)]
 
@@ -383,6 +470,7 @@ def load_full_forecast(cycle, product):
 
     datasets = []
     for fhour in range(1, FORECAST_LENGTH+1):
+        print("loading", product, cycle, fhour)
         fname = grib_filename(product, cycle, fhour)
         f = f'{GRIB_DIR}/{cycle}z/{fname}'
         ds = load_grib_surface(f)
@@ -403,15 +491,18 @@ def cumulate_precip(ds):
 
 def get_datetime64_hour(dt):
     SEC_TO_NS = 1e-9
-    return datetime.utcfromtimestamp(s.time.astype(object) * SEC_TO_NS).hour
+    return datetime.utcfromtimestamp(int(dt.astype(object) * SEC_TO_NS)).hour
 
 
-def save_accumulated_precip_plots(self, full_forecast, product_name,):
 
-    areas = [basemap.ROBINSON_COLORADO, basemap.ROBINSON_WASATCH]
+
+def save_accumulated_precip_plots(full_forecast, product_name,):
+
+    areas = [basemap.COLORADO, basemap.WASATCH]
 
     total_precip = 0
     for step in full_forecast.step:
+        print("step")
         hourly_forecast = full_forecast.sel(step=step)
         fhour = int(hourly_forecast.step / np.timedelta64(1, 'h'))
         total_precip += precip_in_inches(hourly_forecast)
@@ -515,11 +606,15 @@ class HrefSurfaceForecast2:
 
 
 #generate_all_plots(12)
+#forecast = load_full_forecast(12, 'mean')
+#save_accumulated_precip_plots(forecast, 'mean')
 #save_accumulated_precip_plots(12)
 #f = HrefSurfaceForecast("href_prod/grib/12z/href.t12z.conus.mean.f36.grib2")
-#ds1 = cfgrib.open_dataset("href_prod/grib/12z/href.t12z.conus.mean.f01.grib2")
+#ds1 = cfgrib.open_datase(t"href_prod/grib/12z/href.t12z.conus.mean.f01.grib2")
 
 #download_latest_grib()
 #download_gribs("20200203", 00)
 #forecasts.plot_point_precipitation(-105.764, 39.892, location_name="Winter Park")
 
+#f  = cfgrib.open_dataset('href_prod/grib/12z/combined.grib2',
+#                         backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}}).metpy.parse_cf()
