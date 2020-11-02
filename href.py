@@ -1,6 +1,8 @@
 import requests
+import subprocess
 from datetime import datetime, timedelta
 from requests_futures.sessions import FuturesSession
+import os
 from os import listdir
 from os.path import isfile, join
 
@@ -146,7 +148,7 @@ def format_url(product, day_of_year, cycle, fhour):
     fhour = str(fhour).zfill(2)
     cycle = str(cycle).zfill(2)
     #url = f"{FILTERED_BASE_URL}?file=href.t{cycle}z.conus.{product}.f{fhour}.grib2&lev_surface=on=&leftlon=-128&rightlon=-100&toplat=51&bottomlat=30&dir=%2Fhref.{day_of_year}%2Fensprod"
-    url = f"{FILTERED_BASE_URL}?file=href.t{cycle}z.conus.{product}.f{fhour}.grib2&var_APCP=on&subregion=&leftlon=-128&rightlon=-100&toplat=51&bottomlat=30&dir=%2Fhref.{day_of_year}%2Fensprod"
+    url = f"{FILTERED_BASE_URL}?file=href.t{cycle}z.conus.{product}.f{fhour}.grib2&lev_surface=on&subregion=&leftlon=-128&rightlon=-100&toplat=51&bottomlat=30&dir=%2Fhref.{day_of_year}%2Fensprod"
 
     #url = f"{BASE_URL}/href.{day_of_year}/ensprod/href.t{cycle}z.conus.{product}.f{fhour}.grib2"
     return url
@@ -163,6 +165,13 @@ def grib_filename(product, cycle, fhour):
 def download_gribs(date,cycle):
     cycle = str(cycle).zfill(2)
     futures = []
+
+    dir = f'{GRIB_DIR}/{cycle}z/'
+    for f in os.listdir(dir):
+        os.remove(os.path.join(dir, f))
+
+
+
     for prod in PRODUCTS:
         for fhour in range(1, FORECAST_LENGTH + 1):
             url = format_url(prod, date, cycle, fhour)
@@ -174,6 +183,13 @@ def download_gribs(date,cycle):
         with open(f'{GRIB_DIR}/{cycle}z/{fname}', 'wb') as f:
             print("Downloading ", fname)
             f.write(future.result().content)
+
+    for prod in PRODUCTS:
+        #task = subprocess.Popen(['cat', f'{GRIB_DIR}/{cycle}z/*{prod}*'], stdout=subprocess.PIPE)
+        task = subprocess.call(f'cat {GRIB_DIR}/{cycle}z/*{prod}* > {GRIB_DIR}/{cycle}z/{prod}_combined.grib2', shell=True)
+
+        #subprocess.call([f'cat {GRIB_DIR}/{cycle}z/*{prod}* > {GRIB_DIR}/{cycle}z/href.{cycle}z.{prod}.combined.grib2'])
+
 
 
 def download_latest_grib():
@@ -245,7 +261,8 @@ class SurfacePlot:
                  central_longitude=-96,
                  display_counties = False,
                  title = None,
-                 units = None):
+                 units = None,
+                 labels = []):
         self.x = x
         self.y = y
         self.z = z
@@ -259,6 +276,7 @@ class SurfacePlot:
         self.title = title
         self.plot = None
         self.units = units
+        self.labels = labels
 
 
     def create_plot(self):
@@ -299,6 +317,15 @@ class SurfacePlot:
             cs = ax.contourf(self.x, self.y, self.z, self.num_colors, transform=ccrs.PlateCarree())
             #cs = ax.pcolormesh(self.x, self.y, self.z, transform=ccrs.PlateCarree())
 
+        for label in self.labels:
+            text, coords = label
+            lon, lat = coords
+            transform = ccrs.PlateCarree()._as_mpl_transform(ax)
+            #ax.annotate(text, (lon,lat), xycoords=transform)
+            ax.text(lon,lat, text, horizontalalignment='left', transform=transform)
+            ax.plot(lon,lat, markersize=2, marker='o', color='k', transform=ccrs.PlateCarree())
+
+
         if isinstance(self.color_levels, list):
             cbar = plt.colorbar(cs, orientation='vertical', ticks=self.color_levels)
         else:
@@ -335,13 +362,13 @@ def crop_dataset(forecast, domain):
     return cropped
 
 
-def save_accumulated_precip_plots3(forecast, product='mean'):
+def save_accumulated_precip_plots3(forecast, product='mean',):
     areas = [basemap.COLORADO, basemap.WASATCH]
 
     acc_precip = forecast.tp.cumsum(axis=0)
 
     init_time = forecast.valid_time[0] - np.timedelta64(1, 'h')
-    cycle = get_datetime64_hour(forecast.valid_time[0])
+    cycle = str(get_datetime64_hour(init_time)).zfill(2)
     for i, valid_time in enumerate(acc_precip.valid_time):
         print('saving', i)
         fhour = str(i+1).zfill(2)
@@ -362,7 +389,8 @@ def save_accumulated_precip_plots3(forecast, product='mean'):
                                central_longitude=area.central_longitude,
                                display_counties=area.display_counties,
                                title=title,
-                               units='in')
+                               units='in',
+                               labels=area.labels)
             plot.save_plot(f"href_prod/images/{area.name}-{cycle}z-{product}-{fhour}.png")
 
 
@@ -609,6 +637,7 @@ class HrefSurfaceForecast2:
 #forecast = load_full_forecast(12, 'mean')
 #save_accumulated_precip_plots(forecast, 'mean')
 #save_accumulated_precip_plots(12)
+#save_accumulated_precip_plots3(f, 'mean')
 #f = HrefSurfaceForecast("href_prod/grib/12z/href.t12z.conus.mean.f36.grib2")
 #ds1 = cfgrib.open_datase(t"href_prod/grib/12z/href.t12z.conus.mean.f01.grib2")
 
@@ -616,5 +645,4 @@ class HrefSurfaceForecast2:
 #download_gribs("20200203", 00)
 #forecasts.plot_point_precipitation(-105.764, 39.892, location_name="Winter Park")
 
-#f  = cfgrib.open_dataset('href_prod/grib/12z/combined.grib2',
-#                         backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}}).metpy.parse_cf()
+#f  = cfgrib.open_dataset('href_prod/grib/12z/mean_combined.grib2', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}}).metpy.parse_cf()
