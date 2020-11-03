@@ -30,9 +30,8 @@ WASATCH = Basemap([-113, -109, 39.15, 42.6],
                   -111,
                   True,
                   "wasatch",
-                  labels= [('Alta/Snowbird', (-111.64, 40.57)),
-                           ('Brighton', (-111.58, 40.59)),
-                           ('Brighton', (-111.58, 40.59))])
+                  labels= [('Alta', (-111.64, 40.57)),
+                           ('Solitude', (-111.6, 40.61)),])
 
 CONUS = Basemap([-120, -74, 23, 51])
 
