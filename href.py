@@ -115,7 +115,7 @@ PRECIP_CMAP_DATA = np.array([
 
 def select_cycle():
     utc_hour = datetime.utcnow().hour
-    if utc_hour > 14 or utc_hour < 3:
+    if utc_hour > 15 or utc_hour < 3:
         return "12"
     else:
         return "00"
@@ -438,9 +438,7 @@ def plot_point_precipitation(means, pmmns, sprds, lon, lat, location_name='locat
 
 
 if __name__ == "__main__":
-    #_, cycle = download_latest_grib()
-
-    cycle = '12'
+    _, cycle = download_latest_grib()
 
     mean = load_grib_surface(f'{GRIB_DIR}/{cycle}z/mean_combined.grib2')
     pmmn = load_grib_surface(f'{GRIB_DIR}/{cycle}z/pmmn_combined.grib2')
