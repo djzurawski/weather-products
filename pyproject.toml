@@ -13,6 +13,7 @@ metpy = "^0.12.0"
 requests-futures = "^1.0.0"
 cartopy = "^0.18.0"
 netCDF4 = "^1.5.3"
+haversine = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
 

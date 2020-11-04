@@ -1,6 +1,8 @@
 import requests
+import subprocess
 from datetime import datetime, timedelta
 from requests_futures.sessions import FuturesSession
+import os
 from os import listdir
 from os.path import isfile, join
 
@@ -11,6 +13,7 @@ import cartopy.io.shapereader as shpreader
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 from metpy.units import masked_array, units
+from metpy.interpolate import inverse_distance_to_points
 #from netCDF4 import Dataset
 import numpy as np
 
@@ -24,6 +27,11 @@ import cartopy.io.shapereader as shpreader
 from cartopy.feature import NaturalEarthFeature
 import basemap
 
+from multiprocessing import Pool
+
+from metpy.plots import USCOUNTIES
+import haversine
+
 
 CYCLES = ["00", "12"]
 FORECAST_LENGTH = 36 #hours
@@ -31,6 +39,7 @@ FORECAST_LENGTH = 36 #hours
 PRODUCTS = ["mean", "sprd", "pmmn"]
 
 BASE_URL = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hiresw/prod"
+FILTERED_BASE_URL = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrefconus.pl"
 GRIB_DIR = "href_prod/grib"
 IMAGE_DIR = "href_prod/images"
 
@@ -42,8 +51,9 @@ DOMAIN_EXTENT = [-113, -103.1, 35.4, 42.2]
 CONUS_EXTENT= [-120, -74, 23, 51]
 WASHINGTON_EXTENT = [-126, -116, 45, 50.5]
 
-#COUNTY_SHAPEFILE = 'resources/cb_2018_us_county_5m.shp'
-COUNTY_SHAPEFILE = 'resources/countyp010g.shp'
+
+COUNTY_SHAPEFILE = 'resources/cb_2018_us_county_20m.shp'
+#COUNTY_SHAPEFILE = 'resources/countyp010g.shp'
 
 CAIC_PRECIP_CLEVS = [ 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.5, 2, 3, 4, 5]
 CAIC_SNOW_CLEVS = [ 0.1, 0.2, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30, 40, 50]
@@ -67,10 +77,10 @@ CAIC_PRECIP_CMAP_DATA = np.array([
     (126,1,126),
     (255,255,255)]) / 255.0
 
-WEATHERBELL_PRECIP_CLEVS = [0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5,
+PRECIP_CLEVS = [0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5,
  0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3, 3.5, 4, 5, 6, 7, 8, 9,]
 
-WEATHERBELL_PRECIP_CMAP_DATA = np.array([
+PRECIP_CMAP_DATA = np.array([
     (190,190,190),
     (170,165,165),
     (130,130,130),
@@ -105,7 +115,7 @@ WEATHERBELL_PRECIP_CMAP_DATA = np.array([
 
 def select_cycle():
     utc_hour = datetime.utcnow().hour
-    if utc_hour > 14 or utc_hour < 3:
+    if utc_hour > 15 or utc_hour < 3:
         return "12"
     else:
         return "00"
@@ -136,7 +146,11 @@ def latest_day_and_cycle():
 def format_url(product, day_of_year, cycle, fhour):
     """day_of_year = 'yyyymmdd'"""
     fhour = str(fhour).zfill(2)
-    url = f"{BASE_URL}/href.{day_of_year}/ensprod/href.t{cycle}z.conus.{product}.f{fhour}.grib2"
+    cycle = str(cycle).zfill(2)
+    #url = f"{FILTERED_BASE_URL}?file=href.t{cycle}z.conus.{product}.f{fhour}.grib2&lev_surface=on=&leftlon=-128&rightlon=-100&toplat=51&bottomlat=30&dir=%2Fhref.{day_of_year}%2Fensprod"
+    url = f"{FILTERED_BASE_URL}?file=href.t{cycle}z.conus.{product}.f{fhour}.grib2&lev_surface=on&subregion=&leftlon=-128&rightlon=-100&toplat=51&bottomlat=30&dir=%2Fhref.{day_of_year}%2Fensprod"
+
+    #url = f"{BASE_URL}/href.{day_of_year}/ensprod/href.t{cycle}z.conus.{product}.f{fhour}.grib2"
     return url
 
 def list_files(path):
@@ -148,10 +162,16 @@ def grib_filename(product, cycle, fhour):
     return f"href.t{cycle}z.conus.{product}.f{fhour}.grib2"
 
 
-def download_latest_grib():
-    date, cycle = latest_day_and_cycle()
-
+def download_gribs(date,cycle):
+    cycle = str(cycle).zfill(2)
     futures = []
+
+    dir = f'{GRIB_DIR}/{cycle}z/'
+    for f in os.listdir(dir):
+        os.remove(os.path.join(dir, f))
+
+
+
     for prod in PRODUCTS:
         for fhour in range(1, FORECAST_LENGTH + 1):
             url = format_url(prod, date, cycle, fhour)
@@ -164,6 +184,19 @@ def download_latest_grib():
             print("Downloading ", fname)
             f.write(future.result().content)
 
+    for prod in PRODUCTS:
+        task = subprocess.call(f'cat {GRIB_DIR}/{cycle}z/*{prod}* > {GRIB_DIR}/{cycle}z/{prod}_combined.grib2', shell=True)
+
+
+def download_latest_grib():
+    date, cycle = latest_day_and_cycle()
+    download_gribs(date,cycle)
+    return date, cycle
+
+
+def load_grib_surface(f):
+    return cfgrib.open_dataset(f, backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}}).metpy.parse_cf()
+
 
 def create_feature(shapefile, projection=ccrs.PlateCarree()):
     reader = shpreader.Reader(shapefile)
@@ -171,25 +204,21 @@ def create_feature(shapefile, projection=ccrs.PlateCarree()):
     return cfeature.ShapelyFeature(feature, projection)
 
 
-class HrefSurfaceForecast:
-    NS_TO_MINUTE = 1E-9 / 60
-    def __init__(self, dataset):
-        self.forecast = cfgrib.open_dataset(dataset, backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
-        self.model = "HREF"
-        self.lats = self.forecast.latitude
-        self.lons = self.forecast.longitude
-        self.initialized = self.forecast.time
-        self.fhour = int(self.forecast.step * (self.NS_TO_MINUTE / 60))
-        self.fminute = int(self.forecast.step * self.NS_TO_MINUTE)
-        self.valid = self.initialized + np.timedelta64(self.fminute,'m')
+def precip_mass_to_in(precip_m):
+    WATER_DENSITY = 997 * units('kg/m^3')
+    data = precip_m * units('kg/m^2')
+    precip_m =  data / WATER_DENSITY
+    precip_in = precip_m / (0.0254 * units('m/in'))
+    return precip_in
 
 
-    def total_precip(self):
-        WATER_DENSITY = 997 * units('kg/m^3')
-        data = self.forecast.tp * units('kg/m^2')
-        precip_m =  data / WATER_DENSITY
-        precip_in = precip_m / (0.0254 * units('m/in'))
-        return precip_in
+def cumulate_precip(ds):
+        return precip_mass_to_in(ds.tp).cumsum(axis=0)
+
+
+def get_datetime64_hour(dt):
+    SEC_TO_NS = 1e-9
+    return datetime.utcfromtimestamp(int(dt.astype(object) * SEC_TO_NS)).hour
 
 
 def plot_title(init,
@@ -216,7 +245,9 @@ class SurfacePlot:
                  figsize=(18,10),
                  central_longitude=-96,
                  display_counties = False,
-                 title = None):
+                 title = None,
+                 units = None,
+                 labels = []):
         self.x = x
         self.y = y
         self.z = z
@@ -229,11 +260,16 @@ class SurfacePlot:
         self.display_counties = display_counties
         self.title = title
         self.plot = None
+        self.units = units
+        self.labels = labels
+
 
     def create_plot(self):
 
         fig = plt.figure(figsize=self.figsize)
-        data_projection=ccrs.LambertConformal(central_longitude=self.central_longitude)
+        #data_projection=ccrs.LambertConformal(central_longitude=self.central_longitude)
+        #data_projection=ccrs.Alb(central_longitude=self.central_longitude)
+        data_projection=ccrs.Robinson(central_longitude=self.central_longitude)
         ax = plt.axes(projection=data_projection)
 
         if self.extent is not None:
@@ -261,22 +297,34 @@ class SurfacePlot:
             cmap = mcolors.ListedColormap(self.colormap)
             norm = mcolors.BoundaryNorm(self.color_levels, cmap.N)
             cs = ax.contourf(self.x, self.y, self.z, self.color_levels, cmap=cmap, norm=norm, transform=ccrs.PlateCarree())
-
+            #cs = ax.pcolormesh(self.x, self.y, self.z, cmap=cmap, norm=norm, transform=ccrs.PlateCarree())
         else:
             cs = ax.contourf(self.x, self.y, self.z, self.num_colors, transform=ccrs.PlateCarree())
+            #cs = ax.pcolormesh(self.x, self.y, self.z, transform=ccrs.PlateCarree())
+
+        for label in self.labels:
+            text, coords = label
+            lon, lat = coords
+            transform = ccrs.PlateCarree()._as_mpl_transform(ax)
+            #ax.annotate(text, (lon,lat), xycoords=transform)
+            ax.text(lon,lat, text, horizontalalignment='left', transform=transform)
+            ax.plot(lon,lat, markersize=2, marker='o', color='k', transform=ccrs.PlateCarree())
+
 
         if isinstance(self.color_levels, list):
             cbar = plt.colorbar(cs, orientation='vertical', ticks=self.color_levels)
-
         else:
             cbar = plt.colorbar(cs, orientation='vertical')
-        cbar.set_label(self.z.data.units)
+
+        if self.units:
+            cbar.set_label(self.units)
 
         if self.title is not None:
             plt.title(self.title)
 
 
         self.plot = fig
+        self.ax = ax
 
     def show_plot(self):
         self.create_plot()
@@ -288,34 +336,124 @@ class SurfacePlot:
         plt.close()
 
 
-def save_accumulated_precip_plots(product, cycle):
+def crop_dataset(forecast, domain):
+    west,east,south,north = domain.extent
+    west = west % 360
+    east = east % 360
 
-    cycle = str(cycle).zfill(2)
+    mask_lon = (forecast.longitude >= west) & (forecast.longitude <= east)
+    mask_lat = (forecast.latitude >= south) & (forecast.latitude <= north)
 
-    total_precip = 0
-    for fhour in range(1, FORECAST_LENGTH + 1):
-        print('Processing', product, fhour)
-        fname = grib_filename(product, cycle, fhour)
-        fhour = str(fhour).zfill(2)
-        dataset = f'{GRIB_DIR}/{cycle}z/{fname}'
-        forecast = HrefSurfaceForecast(dataset)
-        total_precip += forecast.total_precip()
-        title = plot_title(forecast.initialized,
-                           forecast.valid,
-                           forecast.fhour,
+    cropped = forecast.where(mask_lon & mask_lat, drop=True)
+    return cropped
+
+
+def save_accumulated_precip_plots(forecast, product='mean',):
+    areas = [basemap.COLORADO, basemap.WASATCH]
+
+    precip_in = precip_mass_to_in(forecast.tp)
+
+    acc_precip = precip_in.cumsum(axis=0)
+
+    init_time = forecast.valid_time[0] - np.timedelta64(1, 'h')
+    cycle = str(get_datetime64_hour(init_time)).zfill(2)
+    for i, valid_time in enumerate(acc_precip.valid_time):
+        print('saving', product, i + 1)
+        fhour = str(i+1).zfill(2)
+
+        title = plot_title(init_time,
+                           acc_precip.valid_time[i],
+                           i + 1,
                            field_name = f"Accumulated Precip {product}",
                            field_units = 'in',
                            model_name = "HREF")
-        plot = SurfacePlot(forecast.lons, forecast.lats, total_precip,
-                           colormap=WEATHERBELL_PRECIP_CMAP_DATA,
-                           color_levels=WEATHERBELL_PRECIP_CLEVS,
-                           extent=COLORADO_EXTENT,
-                           central_longitude=-105,
-                           display_counties=True,
-                           title=title)
-        plot.save_plot(f"href_prod/images/{product}-{cycle}-{fhour}.png")
 
-    return total_precip
+        for area in areas:
+            cropped = crop_dataset(acc_precip[i], area)
+            plot = SurfacePlot(cropped.longitude, cropped.latitude, cropped,
+                               colormap=PRECIP_CMAP_DATA,
+                               color_levels=PRECIP_CLEVS,
+                               extent=area.extent,
+                               central_longitude=area.central_longitude,
+                               display_counties=area.display_counties,
+                               title=title,
+                               units='in',
+                               labels=area.labels)
+            plot.save_plot(f"href_prod/images/{cycle}z/{area.name}-{cycle}z-{product}-{fhour}.png")
 
-#download_latest_grib()
-#save_accumulated_precip_plots("mean",12)
+
+def nearest_point(ds, lon, lat):
+    def haver(ds_lat,ds_lon):
+        if ds_lon > 180 or ds_lon < 0:
+            ds_lon = ds_lon - 360
+        return haversine.haversine((lat, lon), (ds_lat, ds_lon))
+
+    vectorized_haver = np.vectorize(haver)
+
+    distances = vectorized_haver(ds.latitude, ds.longitude)
+    #https://docs.scipy.org/doc/numpy/reference/generated/numpy.argmin.html - example with np.unravel_index
+    lat_idx, lon_idx = np.unravel_index(np.argmin(distances, axis=None), distances.shape)
+    nearest = ds.sel(x=lon_idx, y=lat_idx)
+    nearest_lat = float(nearest.latitude.values)
+    nearest_lon = float(nearest.longitude.values)
+    if nearest_lon > 180 or nearest_lon < 0:
+            nearest_lon = nearest_lon - 360
+
+    return ((lon_idx, lat_idx), (nearest_lon, nearest_lat))
+
+
+def plot_point_precipitation(means, pmmns, sprds, lon, lat, location_name='location', show=False):
+
+    initialized = np.datetime_as_string(means.time, unit='m', timezone='UTC')
+
+    ((x_idx,y_idx),(nearest_lon, nearest_lat)) = nearest_point(means, lon,lat)
+
+    cum_means = cumulate_precip(means).sel(x=x_idx, y=y_idx)
+    cum_pmmns = cumulate_precip(pmmns).sel(x=x_idx, y=y_idx)
+    cum_sprds = cumulate_precip(sprds).sel(x=x_idx, y=y_idx)
+
+    high = cum_means + cum_sprds
+    low = cum_means - cum_sprds
+    low = low.values.clip(min=0) #cant have negative precip
+
+
+    plt.rcParams.update({'font.size': 14})
+    fig = plt.figure(figsize=(12,7))
+    plt.plot(means.valid_time, cum_means, color='r', label='mean')
+    plt.plot(pmmns.valid_time, cum_pmmns, color='b', label='probability matched mean')
+    plt.fill_between(means.valid_time.values,low ,high , color='k', alpha=0.2, label='stdv')
+    plt.title("HREF Initialized: " + initialized, loc='left', fontsize=18)
+    if location_name is not None:
+        location_title = "{} ({}, {})".format(location_name, round(nearest_lat,3), round(nearest_lon,3))
+        plt.title(location_title, loc='right', fontsize=18)
+    plt.grid(linestyle='--')
+    plt.xlabel("Datetime (UTC)")
+    plt.ylabel("Accumulated Precipitation (in)")
+    plt.legend()
+    if show:
+        plt.show()
+    else:
+        plt.savefig(f'{IMAGE_DIR}/{cycle}z/{location_name}-{cycle}z-meteogram.png', bbox_inches='tight')
+
+
+
+if __name__ == "__main__":
+    _, cycle = download_latest_grib()
+
+    mean = load_grib_surface(f'{GRIB_DIR}/{cycle}z/mean_combined.grib2')
+    pmmn = load_grib_surface(f'{GRIB_DIR}/{cycle}z/pmmn_combined.grib2')
+    sprd = load_grib_surface(f'{GRIB_DIR}/{cycle}z/sprd_combined.grib2')
+
+    save_accumulated_precip_plots(mean, 'mean')
+    save_accumulated_precip_plots(pmmn, 'pmmn')
+    save_accumulated_precip_plots(sprd, 'sprd')
+
+    for domain in [basemap.WASATCH, basemap.COLORADO]:
+        for label in domain.labels:
+            name, coords = label
+            lon, lat = coords
+            plot_point_precipitation(mean, pmmn, sprd, lon, lat, name)
+
+
+#f  = cfgrib.open_dataset('href_prod/grib/12z/mean_combined.grib2', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}}).metpy.parse_cf()
+#save_accumulated_precip_plots(f, 'mean')
