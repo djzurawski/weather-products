@@ -21,7 +21,7 @@ COLORADO = Basemap([-109.5, -103.1, 35.4, 42.2],
                    True,
                    "colorado",
                    labels = [('Boulder', (-105.27, 40.01)),
-                             ('Wnter Park', (-105.77, 39.867)),
+                             ('WnterPark', (-105.77, 39.867)),
                              ('Abasin', (-105.876, 39.63)),
                              ('Copper', (-106.15, 39.48)),
                              ('Eldora', (-105.6, 39.94)),
@@ -32,7 +32,7 @@ NORCO = Basemap([-107.1, -104.6, 39.07, 41],
                    True,
                    "norco",
                    labels = [('Boulder', (-105.27, 40.01)),
-                             ('Wnter Park', (-105.77, 39.867)),
+                             ('WnterPark', (-105.77, 39.867)),
                              ('Abasin', (-105.876, 39.63)),
                              ('Copper', (-106.15, 39.48)),
                              ('Eldora', (-105.6, 39.94)),
@@ -52,7 +52,7 @@ COTTONWOODS = Basemap([-112.25, -111.35, 40.16, 40.77],
                   "cottonwoods",
                   labels= [('Alta', (-111.64, 40.57)),
                            ('Solitude', (-111.6, 40.61)),
-                           ('Park City', (-111.5, 40.63)),])
+                           ('ParkCity', (-111.5, 40.63)),])
 
 CONUS = Basemap([-120, -74, 23, 51])
 
