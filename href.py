@@ -349,7 +349,7 @@ def crop_dataset(forecast, domain):
 
 
 def save_accumulated_precip_plots(forecast, product='mean',):
-    areas = [basemap.COLORADO, basemap.WASATCH]
+    areas = [basemap.NORCO, basemap.COTTONWOODS]
 
     precip_in = precip_mass_to_in(forecast.tp)
 
@@ -448,7 +448,7 @@ if __name__ == "__main__":
     save_accumulated_precip_plots(pmmn, 'pmmn')
     save_accumulated_precip_plots(sprd, 'sprd')
 
-    for domain in [basemap.WASATCH, basemap.COLORADO]:
+    for domain in [basemap.NORCO, basemap.COTTONWOODS]:
         for label in domain.labels:
             name, coords = label
             lon, lat = coords
