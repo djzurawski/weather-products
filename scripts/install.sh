@@ -19,3 +19,9 @@ curl -s https://prd-tnm.s3.amazonaws.com/StagedProducts/Small-scale/data/Hydrogr
 curl -s https://prd-tnm.s3.amazonaws.com/StagedProducts/Small-scale/data/Boundaries/statesp010g.shp_nt00938.tar.gz | tar xvz -C  $(dirname $0)/../resources
 
 wget https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_20m.zip
+unzip cb_2018_us_county_20m.zip
+mv cb_* $(dirname $0)/../resources/
+
+
+poetry run pip3 uninstall shapely
+poetry run pip3 install shapely --no-binary shapely
