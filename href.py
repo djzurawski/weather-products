@@ -412,8 +412,8 @@ def plot_point_precipitation(means, pmmns, sprds, lon, lat, location_name='locat
     cum_pmmns = cumulate_precip(pmmns).sel(x=x_idx, y=y_idx)
     cum_sprds = cumulate_precip(sprds).sel(x=x_idx, y=y_idx)
 
-    high = cum_means + cum_sprds
-    low = cum_means - cum_sprds
+    high = cum_means + (0.5 * cum_sprds)
+    low = cum_means - (0.5 * cum_sprds)
     low = low.values.clip(min=0) #cant have negative precip
 
 
