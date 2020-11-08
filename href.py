@@ -14,7 +14,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 from metpy.units import masked_array, units
 from metpy.interpolate import inverse_distance_to_points
-#from netCDF4 import Dataset
+from netCDF4 import Dataset
 import numpy as np
 
 
@@ -33,7 +33,7 @@ from metpy.plots import USCOUNTIES
 import haversine
 
 
-CYCLES = ["00", "12"]
+
 FORECAST_LENGTH = 36 #hours
 
 PRODUCTS = ["mean", "sprd", "pmmn"]
@@ -44,12 +44,6 @@ GRIB_DIR = "href_prod/grib"
 IMAGE_DIR = "href_prod/images"
 
 grib_download_session = FuturesSession(max_workers=4)
-
-
-COLORADO_EXTENT = [-109.5, -103.1, 35.4, 42.2]
-DOMAIN_EXTENT = [-113, -103.1, 35.4, 42.2]
-CONUS_EXTENT= [-120, -74, 23, 51]
-WASHINGTON_EXTENT = [-126, -116, 45, 50.5]
 
 
 COUNTY_SHAPEFILE = 'resources/cb_2018_us_county_20m.shp'
@@ -133,14 +127,29 @@ def yesterday_date():
     return datetime.utcnow() - timedelta(1)
 
 
-def latest_day_and_cycle():
-    cycle = select_cycle()
-    if should_get_yesterday():
-        date = yesterday_date()
-    else:
-        date = datetime.utcnow()
+def select_model_init_time(dt_utc=datetime.utcnow()):
 
-    return date.strftime('%Y%m%d'), cycle
+    hour = dt_utc.hour
+    minute = dt_utc.minute
+
+    cutoff_18z = dt_utc.replace(hour=3, minute=10)
+    cutoff_00z = dt_utc.replace(hour=8, minute=40)
+    cutoff_06z = dt_utc.replace(hour=15)
+    cutoff_12z = dt_utc.replace(hour=20, minute=30)
+
+
+    if dt_utc.hour >= 0 and dt_utc < cutoff_18z:
+        init = (dt_utc - timedelta(days=-1)).replace(hour=18)
+    elif dt_utc >= cutoff_18z and dt_utc < cutoff_00z:
+        init = dt_utc.replace(hour=0)
+    elif dt_utc >= cutoff_00z and dt_utc < cutoff_06z:
+        init = dt_utc.replace(hour=6)
+    elif dt_utc >= cutoff_06z and dt_utc < cutoff_12z:
+        init = dt_utc.replace(hour=12)
+    else:
+        init = dt_utc.replace(hour=18)
+
+    return init
 
 
 def format_url(product, day_of_year, cycle, fhour):
@@ -189,13 +198,19 @@ def download_gribs(date,cycle):
 
 
 def download_latest_grib():
-    date, cycle = latest_day_and_cycle()
-    download_gribs(date,cycle)
-    return date, cycle
+    init_time = select_model_init_time()
+
+    cycle = str(init_time.hour).zfill(2)
+    date_str = init_time.strftime('%Y%m%d')
+    #date, cycle = latest_day_and_cycle()
+
+    download_gribs(date_str, cycle)
+    return date_str, cycle
 
 
 def load_grib_surface(f):
-    return cfgrib.open_dataset(f, backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}}).metpy.parse_cf()
+    return cfgrib.open_dataset(f,
+                               backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface',}}).metpy.parse_cf()
 
 
 def create_feature(shapefile, projection=ccrs.PlateCarree()):
@@ -238,7 +253,7 @@ def plot_title(init,
 class SurfacePlot:
     def __init__(self,
                  x,y,z,
-                 extent=CONUS_EXTENT,
+                 extent=basemap.CONUS.extent,
                  colormap = None,
                  color_levels = None,
                  num_colors = 15,
