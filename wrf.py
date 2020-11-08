@@ -47,7 +47,7 @@ def accumulated_swe_plots(domain='d02', bmap=basemap.COTTONWOODS):
                    title = title)
 
 
-        plot.save_plot(f'wrf_prod/images/{bmap.name}-{cycle}z-swe-{fhour_str}.png')
+        plot.save_plot(f'wrf_prod/images/{cycle}z/{bmap.name}-{cycle}z-swe-{fhour_str}.png')
 
 if __name__ == "__main__":
     accumulated_swe_plots()
