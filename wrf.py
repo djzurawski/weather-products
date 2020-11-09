@@ -35,7 +35,7 @@ def accumulated_swe_plots(domain='d02', bmap=basemap.COTTONWOODS):
         valid_time = init_time + timedelta(hours=fhour)
 
         title = plot_title(init_time, valid_time, fhour, 'swe', 'danwrf', 'in')
-        print('saving', fhour, type(fhour))
+        print('saving', cycle, fhour)
 
         plot = SurfacePlot(lons, lats, swe_in,
                    extent=bmap.extent,

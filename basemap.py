@@ -46,7 +46,7 @@ WASATCH = Basemap([-113, -109, 39.15, 42.6],
                   labels= [('Alta', (-111.64, 40.57)),
                            ('Solitude', (-111.6, 40.61)),])
 
-COTTONWOODS = Basemap([-112.45, -111.35, 40.12, 40.84],
+COTTONWOODS = Basemap([-112.75, -111.2, 40.00, 41.2],
                   -112,
                   True,
                   "cottonwoods",
