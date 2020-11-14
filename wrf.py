@@ -8,21 +8,22 @@ from href import SurfacePlot, plot_title, PRECIP_CLEVS, PRECIP_CMAP_DATA, CAIC_P
 import basemap
 import matplotlib.pyplot as plt
 
-NC_DIR = "/home/dan/uems/runs/wasatch/wrfprd"
+UT_NC_DIR = "/home/dan/uems/runs/wasatch/wrfprd"
+CO_NC_DIR = "/home/dan/uems/runs/colorado/wrfprd"
 #NC_DIR = '/home/dan/Documents/wrfprd'
 #NC_DIR = '/home/dan/Documents/wrfprd_ut'
-IMAGE_DIR = "wrf_prod/images"
+#IMAGE_DIR = "wrf_prod/images"
 
 MM_TO_IN = 0.03937008
 
 
-def domain_netcdf_files(domain='d02', path=NC_DIR):
+def domain_netcdf_files(domain='d02', path=UT_NC_DIR):
     domain_files = sorted([f for f in os.listdir(path) if domain in f])
     return domain_files
 
 
-def accumulated_swe_plots(domain='d02', bmap=basemap.COTTONWOODS):
-    for nc_file in domain_netcdf_files():
+def accumulated_swe_plots(domain='d02', bmap=basemap.COTTONWOODS, nc_dir=UT_NC_DIR):
+    for nc_file in domain_netcdf_files(path=nc_dir):
         ds = Dataset(NC_DIR + '/' + nc_file)
 
         swe_in = ds.variables['SNOWNC'][0] * MM_TO_IN
@@ -50,5 +51,6 @@ def accumulated_swe_plots(domain='d02', bmap=basemap.COTTONWOODS):
         plot.save_plot(f'wrf_prod/images/{cycle}z/{bmap.name}-{cycle}z-swe-{fhour_str}.png')
 
 if __name__ == "__main__":
-    accumulated_swe_plots(bmap=basemap.COTTONWOODS)
-    accumulated_swe_plots(bmap=basemap.UT_D2)
+    accumulated_swe_plots(bmap=basemap.COTTONWOODS, nc_dir=UT_NC_DIR)
+    accumulated_swe_plots(bmap=basemap.UT_D2, nc_dir=UT_NC_DIR)
+    accumulated_swe_plots(bmap=basemap.CO_D2, nc_dir=CO_NC_DIR)
