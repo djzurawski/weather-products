@@ -24,7 +24,7 @@ def domain_netcdf_files(domain='d02', path=UT_NC_DIR):
 
 def accumulated_swe_plots(domain='d02', bmap=basemap.COTTONWOODS, nc_dir=UT_NC_DIR):
     for nc_file in domain_netcdf_files(path=nc_dir):
-        ds = Dataset(NC_DIR + '/' + nc_file)
+        ds = Dataset(nc_dir + '/' + nc_file)
 
         swe_in = ds.variables['SNOWNC'][0] * MM_TO_IN
         lons = ds.variables['XLONG'][0]
