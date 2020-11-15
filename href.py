@@ -424,7 +424,7 @@ def plot_point_precipitation(means, pmmns, sprds, lon, lat, location_name='locat
     fig = plt.figure(figsize=(12,7))
     plt.plot(means.valid_time, cum_means, color='r', label='mean')
     plt.plot(pmmns.valid_time, cum_pmmns, color='b', label='probability matched mean')
-    plt.fill_between(means.valid_time.values,low ,high , color='k', alpha=0.2, label='stdv')
+    plt.fill_between(means.valid_time.values,low ,high , color='k', alpha=0.2, label='sprd')
     plt.title("HREF Initialized: " + initialized, loc='left', fontsize=18)
     if location_name is not None:
         location_title = "{} ({}, {})".format(location_name, round(nearest_lat,3), round(nearest_lon,3))
