@@ -228,8 +228,14 @@ def plot_title(init,
                model_name="",
                field_units=""):
 
-    init = np.datetime64(init.values)
-    valid = np.datetime64(valid.values)
+
+    try:
+        init = np.datetime64(init.values)
+        valid = np.datetime64(valid.values)
+    except:
+        init = np.datetime64(init)
+        valid = np.datetime64(valid)
+
 
     init = np.datetime_as_string(init, unit='h', timezone='UTC')
     valid = np.datetime_as_string(valid, unit='h', timezone='UTC')
