@@ -247,7 +247,7 @@ def plot_title(init,
 class SurfacePlot:
     def __init__(self,
                  x,y,z,
-                 extent=CONUS_EXTENT,
+                 extent=None,
                  colormap = None,
                  color_levels = None,
                  num_colors = 15,
@@ -283,6 +283,9 @@ class SurfacePlot:
 
         if self.extent is not None:
             ax.set_extent(self.extent)
+        else:
+            left, right, top, bottom = np.min(self.x), np.max(self.x), np.max(self.y), np.min(self.y)
+            ax.set_extent([left, right, bottom, top])
 
         if self.display_counties:
             counties = create_feature(COUNTY_SHAPEFILE)

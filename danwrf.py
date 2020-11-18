@@ -5,11 +5,13 @@ from dateutil import parser
 import numpy as np
 
 from href import SurfacePlot, plot_title, PRECIP_CLEVS, PRECIP_CMAP_DATA, CAIC_PRECIP_CLEVS, CAIC_PRECIP_CMAP_DATA
-import basemap
+import basemap as bmap
 import matplotlib.pyplot as plt
+
 
 UT_NC_DIR = "/home/dan/uems/runs/wasatch/wrfprd"
 CO_NC_DIR = "/home/dan/uems/runs/colorado/wrfprd"
+
 #NC_DIR = '/home/dan/Documents/wrfprd'
 #NC_DIR = '/home/dan/Documents/wrfprd_ut'
 #IMAGE_DIR = "wrf_prod/images"
@@ -22,8 +24,14 @@ def domain_netcdf_files(domain='d02', path=UT_NC_DIR):
     return domain_files
 
 
-def accumulated_swe_plots(domain='d02', bmap=basemap.COTTONWOODS, nc_dir=UT_NC_DIR):
-    for nc_file in domain_netcdf_files(path=nc_dir):
+def accumulated_swe_plots(nc_dir=UT_NC_DIR,
+                          domain='d02',
+                          domain_name = "CO",
+                          labels = [],
+                          extent = None,
+                          central_longitude=-110):
+
+    for nc_file in domain_netcdf_files(path=nc_dir, domain=domain):
         ds = Dataset(nc_dir + '/' + nc_file)
 
         swe_in = ds.variables['SNOWNC'][0] * MM_TO_IN
@@ -39,18 +47,46 @@ def accumulated_swe_plots(domain='d02', bmap=basemap.COTTONWOODS, nc_dir=UT_NC_D
         title = plot_title(init_time, valid_time, fhour, 'swe', 'danwrf', 'in')
         print('saving', cycle, fhour)
 
+
         plot = SurfacePlot(lons, lats, swe_in,
-                           extent=bmap.extent,
+                           extent=extent,
                            colormap=PRECIP_CMAP_DATA,
                            color_levels=PRECIP_CLEVS,
-                           central_longitude=bmap.central_longitude,
-                           labels=bmap.labels,
+                           central_longitude=central_longitude,
+                           labels=labels,
                            display_counties=True,
                            title = title)
 
-        plot.save_plot(f'wrf_prod/images/{cycle}z/{bmap.name}-{cycle}z-swe-{fhour_str}.png')
+        plot.save_plot(f'wrf_prod/images/{cycle}z/{domain_name}-{domain}-{cycle}z-swe-{fhour_str}.png')
 
 if __name__ == "__main__":
-    accumulated_swe_plots(bmap=basemap.COTTONWOODS, nc_dir=UT_NC_DIR)
-    accumulated_swe_plots(bmap=basemap.UT_D2, nc_dir=UT_NC_DIR)
-    accumulated_swe_plots(bmap=basemap.CO_D2, nc_dir=CO_NC_DIR)
+    accumulated_swe_plots(nc_dir=UT_NC_DIR,
+                          domain='d02',
+                          labels=[('Alta', (-111.62, 40.574))],
+                          central_longitude=-111.75,
+                          domain_name="UT2.6km")
+
+    accumulated_swe_plots(nc_dir=UT_NC_DIR,
+                          domain='d01',
+                          labels=[('Alta', (-111.62, 40.574))],
+                          central_longitude=-111.75,
+                          domain_name="UT8km")
+
+    accumulated_swe_plots(nc_dir=CO_NC_DIR,
+                          domain='d02',
+                          labels=bmap.CO_D2.labels,
+                          central_longitude=-106.5,
+                          domain_name="CO2.6km")
+
+    accumulated_swe_plots(nc_dir=CO_NC_DIR,
+                          domain='d01',
+                          labels=[],
+                          central_longitude=-106.5,
+                          domain_name="CO8km")
+
+    #accumulated_swe_plots(bmap=basemap.UT_D2, nc_dir=UT_NC_DIR)
+    #accumulated_swe_plots(bmap=basemap.CO_D2, nc_dir=CO_NC_DIR)
+
+    #accumulated_swe_plots(bmap=None, nc_dir=UT_NC_DIR, domain='d01')
+    #accumulated_swe_plots(bmap=None, nc_dir=NC_DIR, domain='d01')
+    #accumulated_swe_plots(nc_dir=NC_DIR, domain='d01', domain_name="CO8km")
