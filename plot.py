@@ -95,13 +95,11 @@ def rh_700(ds):
     rh = getvar(ds, 'rh')
     ua = getvar(ds, "ua", units="kt")
     va = getvar(ds, "va", units="kt")
-    wspd = getvar(ds, "wspd_wdir", units="kts")[0, :]
 
-    # Interpolate geopotential height, u, and v winds to 500 hPa
+    # Interpolate geopotential height, u, and v winds to 700 hPa
     ht_700 = interplevel(z, p, 700)
     u_700 = interplevel(ua, p, 700)
     v_700 = interplevel(va, p, 700)
-    wspd_500 = interplevel(wspd, p, 700)
     rh_700 = interplevel(rh, p, 700)
 
     lats, lons = latlon_coords(ht_700)
@@ -143,7 +141,7 @@ def rh_700(ds):
 
     plt.barbs(to_np(lons[::7, ::7]), to_np(lats[::7, ::7]),
               to_np(u_700[::7, ::7]), to_np(v_700[::7, ::7]),
-              transform=crs.PlateCarree(), length=5)
+              transform=crs.PlateCarree(), length=5.5)
 
     # Set the map bounds
     ax.set_xlim(cartopy_xlim(ht_700))
@@ -170,13 +168,11 @@ def vort_500(ds):
     abs_vort = getvar(ds, 'avo')
     ua = getvar(ds, "ua", units="kt")
     va = getvar(ds, "va", units="kt")
-    wspd = getvar(ds, "wspd_wdir", units="kts")[0, :]
 
     # Interpolate geopotential height, u, and v winds to 500 hPa
     ht_500 = interplevel(z, p, 500)
     u_500 = interplevel(ua, p, 500)
     v_500 = interplevel(va, p, 500)
-    wspd_500 = interplevel(wspd, p, 500)
     abs_vort_500 = interplevel(abs_vort, p, 500)  # in 10^-5
 
     abs_vort_500 = np.clip(abs_vort_500, a_min=0, a_max=200)
@@ -222,7 +218,7 @@ def vort_500(ds):
 
     plt.barbs(to_np(lons[::7, ::7]), to_np(lats[::7, ::7]),
               to_np(u_500[::7, ::7]), to_np(v_500[::7, ::7]),
-              transform=crs.PlateCarree(), length=5)
+              transform=crs.PlateCarree(), length=5.5)
 
     # Set the map bounds
     ax.set_xlim(cartopy_xlim(ht_500))

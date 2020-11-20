@@ -7,6 +7,7 @@ import numpy as np
 from href import SurfacePlot, plot_title, PRECIP_CLEVS, PRECIP_CMAP_DATA, CAIC_PRECIP_CLEVS, CAIC_PRECIP_CMAP_DATA
 import basemap as bmap
 import matplotlib.pyplot as plt
+import plot
 
 
 UT_NC_DIR = "/home/dan/uems/runs/wasatch/wrfprd"
@@ -26,7 +27,7 @@ def domain_netcdf_files(domain='d02', path=UT_NC_DIR):
 
 def accumulated_swe_plots(nc_dir=UT_NC_DIR,
                           domain='d02',
-                          domain_name = "CO",
+                          domain_name = "UT2.6km",
                           labels = [],
                           extent = None,
                           central_longitude=-110):
@@ -45,7 +46,7 @@ def accumulated_swe_plots(nc_dir=UT_NC_DIR,
         valid_time = init_time + timedelta(hours=fhour)
 
         title = plot_title(init_time, valid_time, fhour, 'swe', 'danwrf', 'in')
-        print('saving', cycle, fhour)
+        print('saving swe', domain_nam, cycle, fhour)
 
 
         plot = SurfacePlot(lons, lats, swe_in,
@@ -58,6 +59,45 @@ def accumulated_swe_plots(nc_dir=UT_NC_DIR,
                            title = title)
 
         plot.save_plot(f'wrf_prod/images/{cycle}z/{domain_name}-{domain}-{cycle}z-swe-{fhour_str}.png')
+
+def vort_500_plots(nc_dir=UT_NC_DIR,
+                   domain_name='UT8km'):
+
+    for nc_file in domain_netcdf_files(path=nc_dir, domain='d01'):
+        ds = Dataset(nc_dir + '/' + nc_file)
+
+        init_time = parser.parse(ds.START_DATE.replace('_', ' '))
+        cycle = str(init_time.hour).zfill(2)
+        fhour = int(ds.variables['XTIME'][0] / 60)
+        fhour_str = str(fhour).zfill(2)
+        valid_time = init_time + timedelta(hours=fhour)
+
+        print('saving vort 500', domain_name, cycle, fhour)
+        vort_500_plot = plot.vort_500(ds)
+
+        vort_500_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-d01-{cycle}z-vort500-{fhour_str}.png')
+        plt.close(vort_500_plot)
+
+
+def rh_700_plots(nc_dir=UT_NC_DIR,
+                 domain_name='UT8km'):
+
+    for nc_file in domain_netcdf_files(path=nc_dir, domain='d01'):
+        ds = Dataset(nc_dir + '/' + nc_file)
+
+        init_time = parser.parse(ds.START_DATE.replace('_', ' '))
+        cycle = str(init_time.hour).zfill(2)
+        fhour = int(ds.variables['XTIME'][0] / 60)
+        fhour_str = str(fhour).zfill(2)
+        valid_time = init_time + timedelta(hours=fhour)
+
+        print('saving rh 700', domain_name, cycle, fhour)
+        rh_700_plot = plot.rh_700(ds)
+
+        rh_700_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-d01-{cycle}z-rh700-{fhour_str}.png')
+        plt.close(rh_700_plot)
+
+
 
 if __name__ == "__main__":
     accumulated_swe_plots(nc_dir=UT_NC_DIR,
@@ -83,6 +123,13 @@ if __name__ == "__main__":
                           labels=[],
                           central_longitude=-106.5,
                           domain_name="CO8km")
+
+    rh_700_plots(nc_dir=UT_NC_DIR, domain_name='UT8km')
+    rh_700_plots(nc_dir=CO_NC_DIR, domain_name='CO8km')
+
+    vort_500_plots(nc_dir=UT_NC_DIR, domain_name='UT8km')
+    vort_500_plots(nc_dir=CO_NC_DIR, domain_name='CO8km')
+
 
     #accumulated_swe_plots(bmap=basemap.UT_D2, nc_dir=UT_NC_DIR)
     #accumulated_swe_plots(bmap=basemap.CO_D2, nc_dir=CO_NC_DIR)
