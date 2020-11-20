@@ -58,7 +58,7 @@ def accumulated_swe_plots(nc_dir=UT_NC_DIR,
                            display_counties=True,
                            title = title)
 
-        plot.save_plot(f'wrf_prod/images/{cycle}z/{domain_name}-{domain}-{cycle}z-swe-{fhour_str}.png')
+        plot.save_plot(f'wrf_prod/images/{cycle}z/{domain_name}-{cycle}z-swe-{fhour_str}.png')
 
 def vort_500_plots(nc_dir=UT_NC_DIR,
                    domain_name='UT8km'):
@@ -75,7 +75,7 @@ def vort_500_plots(nc_dir=UT_NC_DIR,
         print('saving vort 500', domain_name, cycle, fhour)
         vort_500_plot = plot.vort_500(ds)
 
-        vort_500_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-d01-{cycle}z-vort500-{fhour_str}.png')
+        vort_500_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-{cycle}z-vort500-{fhour_str}.png')
         plt.close(vort_500_plot)
 
 
@@ -94,7 +94,7 @@ def rh_700_plots(nc_dir=UT_NC_DIR,
         print('saving rh 700', domain_name, cycle, fhour)
         rh_700_plot = plot.rh_700(ds)
 
-        rh_700_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-d01-{cycle}z-rh700-{fhour_str}.png')
+        rh_700_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-{cycle}z-rh700-{fhour_str}.png')
         plt.close(rh_700_plot)
 
 
