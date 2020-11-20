@@ -130,7 +130,8 @@ if __name__ == "__main__":
                           domain='d02',
                           domain_name=bmap.COTTONWOODS.name,
                           central_longitude=bmap.COTTONWOODS.central_longitude,
-                          labels=bmap.COTTONWOODS.labels)
+                          labels=bmap.COTTONWOODS.labels,
+                          extent=bmap.COTTONWOODS.extent)
 
     rh_700_plots(nc_dir=UT_NC_DIR, domain_name='UT8km')
     rh_700_plots(nc_dir=CO_NC_DIR, domain_name='CO8km')
