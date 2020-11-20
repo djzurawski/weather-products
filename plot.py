@@ -14,7 +14,7 @@ from dateutil import parser
 from datetime import datetime, timedelta
 import matplotlib.colors as mcolors
 
-ds = Dataset('/home/dan/Documents/wrfprd/wrfout_d01_2020-11-13_12:00:00')
+
 COUNTY_SHAPEFILE = 'resources/cb_2018_us_county_20m.shp'
 
 VORT_CMAP = np.array([
