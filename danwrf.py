@@ -75,7 +75,8 @@ def vort_500_plots(nc_dir=UT_NC_DIR,
         print('saving vort 500', domain_name, cycle, fhour)
         vort_500_plot = plot.vort_500(ds)
 
-        vort_500_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-{cycle}z-vort500-{fhour_str}.png')
+        vort_500_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-{cycle}z-vort500-{fhour_str}.png',
+                              bbox_inches='tight')
         plt.close(vort_500_plot)
 
 
@@ -94,7 +95,8 @@ def rh_700_plots(nc_dir=UT_NC_DIR,
         print('saving rh 700', domain_name, cycle, fhour)
         rh_700_plot = plot.rh_700(ds)
 
-        rh_700_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-{cycle}z-rh700-{fhour_str}.png')
+        rh_700_plot.savefig(f'wrf_prod/images/{cycle}z/{domain_name}-{cycle}z-rh700-{fhour_str}.png',
+                            bbox_inches='tight')
         plt.close(rh_700_plot)
 
 
