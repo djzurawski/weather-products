@@ -46,7 +46,7 @@ def accumulated_swe_plots(nc_dir=UT_NC_DIR,
         valid_time = init_time + timedelta(hours=fhour)
 
         title = plot_title(init_time, valid_time, fhour, 'swe', 'danwrf', 'in')
-        print('saving swe', domain_nam, cycle, fhour)
+        print('saving swe', domain_name, cycle, fhour)
 
 
         plot = SurfacePlot(lons, lats, swe_in,
