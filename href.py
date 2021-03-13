@@ -38,7 +38,8 @@ FORECAST_LENGTH = 36 #hours
 
 PRODUCTS = ["mean", "sprd", "pmmn"]
 
-BASE_URL = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hiresw/prod"
+#BASE_URL = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hiresw/prod"
+BASE_URL = "https://para.nomads.ncep.noaa.gov/pub/data/nccf/com/hiresw/para/"
 FILTERED_BASE_URL = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrefconus.pl"
 GRIB_DIR = "href_prod/grib"
 IMAGE_DIR = "href_prod/images"
@@ -148,9 +149,8 @@ def format_url(product, day_of_year, cycle, fhour):
     fhour = str(fhour).zfill(2)
     cycle = str(cycle).zfill(2)
     #url = f"{FILTERED_BASE_URL}?file=href.t{cycle}z.conus.{product}.f{fhour}.grib2&lev_surface=on=&leftlon=-128&rightlon=-100&toplat=51&bottomlat=30&dir=%2Fhref.{day_of_year}%2Fensprod"
-    url = f"{FILTERED_BASE_URL}?file=href.t{cycle}z.conus.{product}.f{fhour}.grib2&lev_surface=on&subregion=&leftlon=-128&rightlon=-100&toplat=51&bottomlat=30&dir=%2Fhref.{day_of_year}%2Fensprod"
-
     #url = f"{BASE_URL}/href.{day_of_year}/ensprod/href.t{cycle}z.conus.{product}.f{fhour}.grib2"
+    url = f"{BASE_URL}/href.{day_of_year}_expv3/href.t{cycle}z.conus.{product}.f{fhour}.grib2"
     return url
 
 def list_files(path):
@@ -169,8 +169,6 @@ def download_gribs(date,cycle):
     dir = f'{GRIB_DIR}/{cycle}z/'
     for f in os.listdir(dir):
         os.remove(os.path.join(dir, f))
-
-
 
     for prod in PRODUCTS:
         for fhour in range(1, FORECAST_LENGTH + 1):
@@ -193,10 +191,8 @@ def download_latest_grib():
     download_gribs(date,cycle)
     return date, cycle
 
-
 def load_grib_surface(f):
-    return cfgrib.open_dataset(f, backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}}).metpy.parse_cf()
-
+    return cfgrib.open_dataset(f, backend_kwargs={'filter_by_keys': {'totalNumber': 10, 'typeOfLevel': 'surface'}})
 
 def create_feature(shapefile, projection=ccrs.PlateCarree()):
     reader = shpreader.Reader(shapefile)
@@ -227,7 +223,6 @@ def plot_title(init,
                field_name,
                model_name="",
                field_units=""):
-
 
     try:
         init = np.datetime64(init.values)
@@ -391,6 +386,7 @@ def save_accumulated_precip_plots(forecast, product='mean',):
                                title=title,
                                units='in',
                                labels=area.labels)
+
             plot.save_plot(f"href_prod/images/{cycle}z/{area.name}-{cycle}z-{product}-{fhour}.png")
 
 
@@ -468,4 +464,6 @@ if __name__ == "__main__":
 
 
 #f  = cfgrib.open_dataset('href_prod/grib/12z/mean_combined.grib2', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}}).metpy.parse_cf()
+#f  = cfgrib.open_dataset('href_prod/grib/12z/mean_combined.grib2', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
 #save_accumulated_precip_plots(f, 'mean')
+#f  = cfgrib.open_dataset('href_prod/grib/12z/href.t12z.conus.mean.f48.grib2', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
