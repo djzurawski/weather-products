@@ -8,13 +8,14 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.6"
 requests = "^2.22.0"
-cfgrib = "^0.9.7"
-metpy = "^0.12.0"
 requests-futures = "^1.0.0"
 cartopy = "^0.18.0"
 netCDF4 = "^1.5.3"
 haversine = "^2.3.0"
 wrf-python = "^1.3.1"
+MetPy = "^1.0"
+cfgrib = "^0.9.8"
+pygrib = "^2.1.3"
 
 [tool.poetry.dev-dependencies]
 
