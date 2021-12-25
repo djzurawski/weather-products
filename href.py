@@ -44,7 +44,7 @@ FILTERED_BASE_URL = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrefconus.pl"
 GRIB_DIR = "href_prod/grib"
 IMAGE_DIR = "href_prod/images"
 
-grib_download_session = FuturesSession(max_workers=4)
+grib_download_session = FuturesSession(max_workers=2)
 
 
 COLORADO_EXTENT = [-109.5, -103.1, 35.4, 42.2]
