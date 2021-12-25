@@ -525,14 +525,14 @@ if __name__ == "__main__":
     save_accumulated_precip_plots(pmmn, 'pmmn')
     save_accumulated_precip_plots(sprd, 'sprd')
 
-    coords = []
-    location_names = []
+    coords = [(-105.777, 39.798)]
+    location_names = ["BerthoudPass"]
     for domain in [basemap.NORCO, basemap.COTTONWOODS]:
         for label in domain.labels:
             name, coord = label
             coords.append(coord)
             location_names.append(name)
-    plot_point_precipitation2(mean, pmmn, sprd, coords, location_name)
+    plot_point_precipitation2(mean, pmmn, sprd, coords, location_names)
 
     """
     for domain in [basemap.NORCO, basemap.COTTONWOODS]:
