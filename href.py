@@ -177,6 +177,16 @@ def download_gribs(date, cycle):
         for fhour in range(1, FORECAST_LENGTH + 1):
             url = format_url(prod, date, cycle, fhour)
             fname = grib_filename(prod, cycle, fhour)
+            print("Downloading ", fname)
+            r = requests.get(url)
+            with open(f'{GRIB_DIR}/{cycle}z/{fname}', 'wb') as f:
+                f.write(r.content)
+
+    """
+    for prod in PRODUCTS:
+        for fhour in range(1, FORECAST_LENGTH + 1):
+            url = format_url(prod, date, cycle, fhour)
+            fname = grib_filename(prod, cycle, fhour)
             future = grib_download_session.get(url)
             futures.append((future, fname, cycle))
 
@@ -184,6 +194,7 @@ def download_gribs(date, cycle):
         with open(f'{GRIB_DIR}/{cycle}z/{fname}', 'wb') as f:
             print("Downloading ", fname)
             f.write(future.result().content)
+    """
 
     for prod in PRODUCTS:
         task = subprocess.call(
