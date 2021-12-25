@@ -468,9 +468,54 @@ def plot_point_precipitation(means, pmmns, sprds, lon, lat, location_name='locat
             f'{IMAGE_DIR}/{cycle}z/{location_name}-{cycle}z-meteogram.png', bbox_inches='tight')
 
 
+def plot_point_precipitation2(means, pmmns, sprds, coords, location_names, show=False):
+
+    initialized = np.datetime_as_string(means.time, unit='m', timezone='UTC')
+
+    cum_means = cumulate_precip(means)
+    cum_pmmns = cumulate_precip(pmmns)
+    cum_sprds = cumulate_precip(sprds)
+
+    for ((lon,lat), location_name) in zip(coords, location_names):
+        ((x_idx, y_idx), (nearest_lon, nearest_lat)) = nearest_point(means, lon, lat)
+
+        loc_cum_means = cum_means.sel(x=x_idx, y=y_idx)
+        loc_cum_pmmns = cum_pmmns.sel(x=x_idx, y=y_idx)
+        loc_cum_sprds = cum_sprds.sel(x=x_idx, y=y_idx)
+
+        high = loc_cum_means + (0.5 * loc_cum_sprds)
+        low = loc_cum_means - (0.5 * loc_cum_sprds)
+        low = low.values.clip(min=0)  # cant have negative precip
+
+        means_times = [(means.time + step).data for step in means.step]
+        pmmns_times = [(pmmns.time + step).data for step in pmmns.step]
+
+        plt.rcParams.update({'font.size': 14})
+        fig = plt.figure(figsize=(12, 7))
+        plt.plot(means_times, loc_cum_means, color='r', label='mean')
+        plt.plot(pmmns_times, loc_cum_pmmns, color='b',
+                 label='probability matched mean')
+        plt.fill_between(means_times, low, high, color='k',
+                         alpha=0.2, label='sprd')
+        plt.title("HREF Initialized: " + initialized, loc='left', fontsize=18)
+        if location_name is not None:
+            location_title = "{} ({}, {})".format(
+                location_name, round(nearest_lat, 3), round(nearest_lon, 3))
+            plt.title(location_title, loc='right', fontsize=18)
+        plt.grid(linestyle='--')
+        plt.xlabel("Datetime (UTC)")
+        plt.ylabel("Accumulated Precipitation (in)")
+        plt.legend()
+        if show:
+            plt.show()
+        else:
+            plt.savefig(
+                f'{IMAGE_DIR}/{cycle}z/{location_name}-{cycle}z-meteogram.png', bbox_inches='tight')
+
+
 if __name__ == "__main__":
-    #_, cycle = download_latest_grib()
-    cycle = "12"
+    _, cycle = download_latest_grib()
+    #cycle = "12"
 
     mean = combine_grib_tp(f'{GRIB_DIR}/{cycle}z/mean_combined.grib2')
     pmmn = combine_grib_tp(f'{GRIB_DIR}/{cycle}z/pmmn_combined.grib2')
@@ -480,11 +525,22 @@ if __name__ == "__main__":
     save_accumulated_precip_plots(pmmn, 'pmmn')
     save_accumulated_precip_plots(sprd, 'sprd')
 
+    coords = []
+    location_names = []
+    for domain in [basemap.NORCO, basemap.COTTONWOODS]:
+        for label in domain.labels:
+            name, coord = label
+            coords.append(coord)
+            location_names.append(name)
+    plot_point_precipitation2(mean, pmmn, sprd, coords, location_name)
+
+    """
     for domain in [basemap.NORCO, basemap.COTTONWOODS]:
         for label in domain.labels:
             name, coords = label
             lon, lat = coords
             plot_point_precipitation(mean, pmmn, sprd, lon, lat, name)
+    """
 
 
 #f  = cfgrib.open_dataset('href_prod/grib/12z/mean_combined.grib2', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}}).metpy.parse_cf()
