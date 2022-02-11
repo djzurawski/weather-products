@@ -36,7 +36,7 @@ import haversine
 CYCLES = ["00", "12"]
 FORECAST_LENGTH = 48  # hours
 
-PRODUCTS = ["mean", "sprd", "pmmn"]
+PRODUCTS = ["mean", "sprd", "lpmm"]
 
 #BASE_URL = "https://nomads.ncep.noaa.gov/pub/data/nccf/com/hiresw/prod"
 BASE_URL = "https://para.nomads.ncep.noaa.gov/pub/data/nccf/com/hiresw/para/"
@@ -178,6 +178,7 @@ def download_gribs(date, cycle):
             url = format_url(prod, date, cycle, fhour)
             fname = grib_filename(prod, cycle, fhour)
             print("Downloading ", fname)
+            print(url)
             r = requests.get(url)
             with open(f'{GRIB_DIR}/{cycle}z/{fname}', 'wb') as f:
                 f.write(r.content)
@@ -439,14 +440,14 @@ def nearest_point(ds, lon, lat):
     return ((lon_idx, lat_idx), (nearest_lon, nearest_lat))
 
 
-def plot_point_precipitation(means, pmmns, sprds, lon, lat, location_name='location', show=False):
+def plot_point_precipitation(means, lpmms, sprds, lon, lat, location_name='location', show=False):
 
     initialized = np.datetime_as_string(means.time, unit='m', timezone='UTC')
 
     ((x_idx, y_idx), (nearest_lon, nearest_lat)) = nearest_point(means, lon, lat)
 
     cum_means = cumulate_precip(means).sel(x=x_idx, y=y_idx)
-    cum_pmmns = cumulate_precip(pmmns).sel(x=x_idx, y=y_idx)
+    cum_lpmms = cumulate_precip(lpmms).sel(x=x_idx, y=y_idx)
     cum_sprds = cumulate_precip(sprds).sel(x=x_idx, y=y_idx)
 
     high = cum_means + (0.5 * cum_sprds)
@@ -454,12 +455,12 @@ def plot_point_precipitation(means, pmmns, sprds, lon, lat, location_name='locat
     low = low.values.clip(min=0)  # cant have negative precip
 
     means_times = [(means.time + step).data for step in means.step]
-    pmmns_times = [(pmmns.time + step).data for step in pmmns.step]
+    lpmms_times = [(lpmms.time + step).data for step in lpmms.step]
 
     plt.rcParams.update({'font.size': 14})
     fig = plt.figure(figsize=(12, 7))
     plt.plot(means_times, cum_means, color='r', label='mean')
-    plt.plot(pmmns_times, cum_pmmns, color='b',
+    plt.plot(lpmms_times, cum_lpmms, color='b',
              label='probability matched mean')
     plt.fill_between(means_times, low, high, color='k',
                      alpha=0.2, label='sprd')
@@ -479,19 +480,19 @@ def plot_point_precipitation(means, pmmns, sprds, lon, lat, location_name='locat
             f'{IMAGE_DIR}/{cycle}z/{location_name}-{cycle}z-meteogram.png', bbox_inches='tight')
 
 
-def plot_point_precipitation2(means, pmmns, sprds, coords, location_names, show=False):
+def plot_point_precipitation2(means, lpmms, sprds, coords, location_names, show=False):
 
     initialized = np.datetime_as_string(means.time, unit='m', timezone='UTC')
 
     cum_means = cumulate_precip(means)
-    cum_pmmns = cumulate_precip(pmmns)
+    cum_lpmms = cumulate_precip(lpmms)
     cum_sprds = cumulate_precip(sprds)
 
     for ((lon,lat), location_name) in zip(coords, location_names):
         ((x_idx, y_idx), (nearest_lon, nearest_lat)) = nearest_point(means, lon, lat)
 
         loc_cum_means = cum_means.sel(x=x_idx, y=y_idx)
-        loc_cum_pmmns = cum_pmmns.sel(x=x_idx, y=y_idx)
+        loc_cum_lpmms = cum_lpmms.sel(x=x_idx, y=y_idx)
         loc_cum_sprds = cum_sprds.sel(x=x_idx, y=y_idx)
 
         high = loc_cum_means + (0.5 * loc_cum_sprds)
@@ -499,12 +500,12 @@ def plot_point_precipitation2(means, pmmns, sprds, coords, location_names, show=
         low = low.values.clip(min=0)  # cant have negative precip
 
         means_times = [(means.time + step).data for step in means.step]
-        pmmns_times = [(pmmns.time + step).data for step in pmmns.step]
+        lpmms_times = [(lpmms.time + step).data for step in lpmms.step]
 
         plt.rcParams.update({'font.size': 14})
         fig = plt.figure(figsize=(12, 7))
         plt.plot(means_times, loc_cum_means, color='r', label='mean')
-        plt.plot(pmmns_times, loc_cum_pmmns, color='b',
+        plt.plot(lpmms_times, loc_cum_lpmms, color='b',
                  label='probability matched mean')
         plt.fill_between(means_times, low, high, color='k',
                          alpha=0.2, label='sprd')
@@ -529,11 +530,11 @@ if __name__ == "__main__":
     #cycle = "12"
 
     mean = combine_grib_tp(f'{GRIB_DIR}/{cycle}z/mean_combined.grib2')
-    pmmn = combine_grib_tp(f'{GRIB_DIR}/{cycle}z/pmmn_combined.grib2')
+    lpmm = combine_grib_tp(f'{GRIB_DIR}/{cycle}z/lpmm_combined.grib2')
     sprd = combine_grib_tp(f'{GRIB_DIR}/{cycle}z/sprd_combined.grib2')
 
     save_accumulated_precip_plots(mean, 'mean')
-    save_accumulated_precip_plots(pmmn, 'pmmn')
+    save_accumulated_precip_plots(lpmm, 'lpmm')
     save_accumulated_precip_plots(sprd, 'sprd')
 
     coords = [(-105.777, 39.798)]
@@ -543,14 +544,14 @@ if __name__ == "__main__":
             name, coord = label
             coords.append(coord)
             location_names.append(name)
-    plot_point_precipitation2(mean, pmmn, sprd, coords, location_names)
+    plot_point_precipitation2(mean, lpmm, sprd, coords, location_names)
 
     """
     for domain in [basemap.NORCO, basemap.COTTONWOODS]:
         for label in domain.labels:
             name, coords = label
             lon, lat = coords
-            plot_point_precipitation(mean, pmmn, sprd, lon, lat, name)
+            plot_point_precipitation(mean, lpmm, sprd, lon, lat, name)
     """
 
 
