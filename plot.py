@@ -115,7 +115,7 @@ def rh_700(ds):
     states = NaturalEarthFeature(category="cultural", scale=border_scale,
                                  facecolor="none",
                                  edgecolor='black',
-                                 name="admin_1_states_provinces_shp")
+                                 name="admin_1_states_provinces")
     lakes = NaturalEarthFeature('physical', 'lakes', border_scale,
                                 edgecolor='blue',
                                 facecolor='none')
@@ -191,7 +191,7 @@ def vort_500(ds):
     states = NaturalEarthFeature(category="cultural", scale=border_scale,
                                  facecolor="none",
                                  edgecolor='black',
-                                 name="admin_1_states_provinces_shp")
+                                 name="admin_1_states_provinces")
     lakes = NaturalEarthFeature('physical', 'lakes', border_scale,
                                 edgecolor='blue',
                                 facecolor='none')

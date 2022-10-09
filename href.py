@@ -315,7 +315,7 @@ class SurfacePlot:
         states = NaturalEarthFeature(category="cultural", scale=border_scale,
                                      facecolor="none",
                                      edgecolor='black',
-                                     name="admin_1_states_provinces_shp")
+                                     name="admin_1_states_provinces")
         lakes = NaturalEarthFeature('physical', 'lakes', border_scale,
                                     edgecolor='blue',
                                     facecolor='none')

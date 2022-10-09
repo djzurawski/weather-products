@@ -102,18 +102,19 @@ def rh_700_plots(nc_dir=UT_NC_DIR,
 
 
 if __name__ == "__main__":
+    """
     accumulated_swe_plots(nc_dir=UT_NC_DIR,
                           domain='d02',
                           labels=[('Alta', (-111.62, 40.574))],
                           central_longitude=-111.75,
                           domain_name="UT2.6km")
-
     accumulated_swe_plots(nc_dir=UT_NC_DIR,
                           domain='d01',
                           labels=[('Alta', (-111.62, 40.574))],
                           central_longitude=-111.75,
                           domain_name="UT8km")
 
+    """
     accumulated_swe_plots(nc_dir=CO_NC_DIR,
                           domain='d02',
                           labels=bmap.CO_D2.labels,
@@ -125,18 +126,18 @@ if __name__ == "__main__":
                           labels=[],
                           central_longitude=-106.5,
                           domain_name="CO8km")
-
+    """
     accumulated_swe_plots(nc_dir=UT_NC_DIR,
                           domain='d02',
                           domain_name=bmap.COTTONWOODS.name,
                           central_longitude=bmap.COTTONWOODS.central_longitude,
                           labels=bmap.COTTONWOODS.labels,
                           extent=bmap.COTTONWOODS.extent)
-
-    rh_700_plots(nc_dir=UT_NC_DIR, domain_name='UT8km')
+    """
+    #rh_700_plots(nc_dir=UT_NC_DIR, domain_name='UT8km')
     rh_700_plots(nc_dir=CO_NC_DIR, domain_name='CO8km')
 
-    vort_500_plots(nc_dir=UT_NC_DIR, domain_name='UT8km')
+    #vort_500_plots(nc_dir=UT_NC_DIR, domain_name='UT8km')
     vort_500_plots(nc_dir=CO_NC_DIR, domain_name='CO8km')
 
 
