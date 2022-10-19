@@ -75,7 +75,8 @@ def accumulated_swe_plots(
         )
 
 
-def vort_500_plot(ds, domain):
+def vort_500_plot(nc_path, domain):
+    ds = Dataset(nc_path)
     init_time = parser.parse(ds.START_DATE.replace("_", " "))
     cycle = str(init_time.hour).zfill(2)
     fhour = int(ds.variables["XTIME"][0] / 60)
@@ -92,18 +93,18 @@ def vort_500_plot(ds, domain):
 
 
 def vort_500_plots(nc_dir=UT_NC_DIR, domain="d01"):
-
-    dss = [
-        Dataset(nc_dir + "/" + nc_file)
+    nc_paths = [
+        nc_dir + "/" + nc_file
         for nc_file in domain_netcdf_files(path=nc_dir, domain=domain)
     ]
-    args = [(ds, domain) for ds in dss]
+    args = [(nc_path, domain) for nc_path in nc_paths]
 
     with mp.Pool() as pool:
         pool.starmap(rh_700_plot, args)
 
 
-def rh_700_plot(ds, domain):
+def rh_700_plot(nc_path, domain):
+    ds = Dataset(nc_path)
     init_time = parser.parse(ds.START_DATE.replace("_", " "))
     cycle = str(init_time.hour).zfill(2)
     fhour = int(ds.variables["XTIME"][0] / 60)
@@ -121,11 +122,11 @@ def rh_700_plot(ds, domain):
 
 def rh_700_plots(nc_dir=UT_NC_DIR, domain="d01"):
 
-    dss = [
-        Dataset(nc_dir + "/" + nc_file)
+    nc_paths = [
+        nc_dir + "/" + nc_file
         for nc_file in domain_netcdf_files(path=nc_dir, domain=domain)
     ]
-    args = [(ds, domain) for ds in dss]
+    args = [(nc_path, domain) for nc_path in nc_paths]
 
     with mp.Pool() as pool:
         pool.starmap(rh_700_plot, args)
