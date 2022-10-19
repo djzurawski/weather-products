@@ -4,7 +4,6 @@ import os
 from dateutil import parser
 import numpy as np
 import multiprocessing as mp
-import xarray as xr
 
 from href import (
     SurfacePlot,
@@ -43,7 +42,7 @@ def accumulated_swe_plots(
 ):
 
     for nc_file in domain_netcdf_files(path=nc_dir, domain=domain):
-        ds = xr.open_dataset(nc_dir + "/" + nc_file)
+        ds = Dataset(nc_dir + "/" + nc_file)
 
         swe_in = ds.variables["SNOWNC"][0] * MM_TO_IN
         lons = ds.variables["XLONG"][0]
@@ -95,7 +94,7 @@ def vort_500_plot(ds, domain):
 def vort_500_plots(nc_dir=UT_NC_DIR, domain="d01"):
 
     dss = [
-        xr.open_dataset(nc_dir + "/" + nc_file)
+        Dataset(nc_dir + "/" + nc_file)
         for nc_file in domain_netcdf_files(path=nc_dir, domain=domain)
     ]
     args = [(ds, domain) for ds in dss]
@@ -123,7 +122,7 @@ def rh_700_plot(ds, domain):
 def rh_700_plots(nc_dir=UT_NC_DIR, domain="d01"):
 
     dss = [
-        xr.open_dataset(nc_dir + "/" + nc_file)
+        Dataset(nc_dir + "/" + nc_file)
         for nc_file in domain_netcdf_files(path=nc_dir, domain=domain)
     ]
     args = [(ds, domain) for ds in dss]
