@@ -100,7 +100,7 @@ def vort_500_plots(nc_dir=UT_NC_DIR, domain="d01"):
     args = [(nc_path, domain) for nc_path in nc_paths]
 
     with mp.Pool() as pool:
-        pool.starmap(rh_700_plot, args)
+        pool.starmap(vort_500_plot, args)
 
 
 def rh_700_plot(nc_path, domain):
@@ -146,6 +146,7 @@ if __name__ == "__main__":
                           domain_name="UT8km")
 
     """
+    
     accumulated_swe_plots(
         nc_dir=CO_NC_DIR,
         domain="d03",
