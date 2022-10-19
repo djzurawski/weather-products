@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import os
 from dateutil import parser
 import numpy as np
+import multiprocessing as mp
 
 from href import (
     SurfacePlot,
@@ -74,46 +75,60 @@ def accumulated_swe_plots(
         )
 
 
+def vort_500_plot(ds, domain):
+    init_time = parser.parse(ds.START_DATE.replace("_", " "))
+    cycle = str(init_time.hour).zfill(2)
+    fhour = int(ds.variables["XTIME"][0] / 60)
+    fhour_str = str(fhour).zfill(2)
+
+    print("saving vort 500", domain, cycle, fhour)
+    vort_500_plot = plot.vort_500(ds)
+
+    vort_500_plot.savefig(
+        f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-vort500-{fhour_str}.png",
+        bbox_inches="tight",
+    )
+    plt.close(vort_500_plot)
+
+
 def vort_500_plots(nc_dir=UT_NC_DIR, domain="d01"):
 
-    for nc_file in domain_netcdf_files(path=nc_dir, domain=domain):
-        ds = Dataset(nc_dir + "/" + nc_file)
+    dss = [
+        Dataset(nc_dir + "/" + nc_file)
+        for nc_file in domain_netcdf_files(path=nc_dir, domain=domain)
+    ]
+    args = [(ds, domain) for ds in dss]
 
-        init_time = parser.parse(ds.START_DATE.replace("_", " "))
-        cycle = str(init_time.hour).zfill(2)
-        fhour = int(ds.variables["XTIME"][0] / 60)
-        fhour_str = str(fhour).zfill(2)
-        valid_time = init_time + timedelta(hours=fhour)
+    with mp.Pool() as pool:
+        pool.starmap(rh_700_plot, args)
 
-        print("saving vort 500", domain, cycle, fhour)
-        vort_500_plot = plot.vort_500(ds)
 
-        vort_500_plot.savefig(
-            f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-vort500-{fhour_str}.png",
-            bbox_inches="tight",
-        )
-        plt.close(vort_500_plot)
+def rh_700_plot(ds, domain):
+    init_time = parser.parse(ds.START_DATE.replace("_", " "))
+    cycle = str(init_time.hour).zfill(2)
+    fhour = int(ds.variables["XTIME"][0] / 60)
+    fhour_str = str(fhour).zfill(2)
+
+    print("saving rh 700", domain, cycle, fhour)
+    rh_700_plot = plot.rh_700(ds)
+
+    rh_700_plot.savefig(
+        f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-rh700-{fhour_str}.png",
+        bbox_inches="tight",
+    )
+    plt.close(rh_700_plot)
 
 
 def rh_700_plots(nc_dir=UT_NC_DIR, domain="d01"):
 
-    for nc_file in domain_netcdf_files(path=nc_dir, domain=domain):
-        ds = Dataset(nc_dir + "/" + nc_file)
+    dss = [
+        Dataset(nc_dir + "/" + nc_file)
+        for nc_file in domain_netcdf_files(path=nc_dir, domain=domain)
+    ]
+    args = [(ds, domain) for ds in dss]
 
-        init_time = parser.parse(ds.START_DATE.replace("_", " "))
-        cycle = str(init_time.hour).zfill(2)
-        fhour = int(ds.variables["XTIME"][0] / 60)
-        fhour_str = str(fhour).zfill(2)
-        valid_time = init_time + timedelta(hours=fhour)
-
-        print("saving rh 700", domain, cycle, fhour)
-        rh_700_plot = plot.rh_700(ds)
-
-        rh_700_plot.savefig(
-            f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-rh700-{fhour_str}.png",
-            bbox_inches="tight",
-        )
-        plt.close(rh_700_plot)
+    with mp.Pool() as pool:
+        pool.starmap(rh_700_plot, args)
 
 
 if __name__ == "__main__":
