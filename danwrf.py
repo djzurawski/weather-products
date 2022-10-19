@@ -20,7 +20,7 @@ import plot
 
 
 UT_NC_DIR = "/home/dan/uems/runs/wasatch/wrfprd"
-CO_NC_DIR = "/home/dan/uems/runs/colorado/wrfprd"
+CO_NC_DIR = "/home/dan/uems/runs/colorado3nest/wrfprd"
 
 # NC_DIR = '/home/dan/Documents/wrfprd'
 # NC_DIR = '/home/dan/Documents/wrfprd_ut'
