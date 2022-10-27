@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.cm import get_cmap
 import cartopy.crs as crs
 from cartopy.feature import NaturalEarthFeature
 from metpy.plots import USCOUNTIES, USSTATES
@@ -181,11 +182,11 @@ RH_LEVELS = [
     100,
 ]
 
+
 def coriolis_parameter(lat_degrees):
     lat_rads = lat_degrees * (np.pi / 180)
     f = 2 * 7.2921e-5 * np.sin(lat_rads)
     return f
-
 
 
 def title_str(init_dt, valid_dt, fhour, field_name, model_name="", field_units=""):
@@ -233,7 +234,7 @@ def add_contour(fig, ax, lons, lats, data, levels=None, transform=crs.PlateCarre
         lats,
         data,
         levels=levels,
-        colors='black',
+        colors="black",
         transform=transform,
     )
     ax.clabel(contours, inline=1, fontsize=10, fmt="%i")
@@ -241,11 +242,21 @@ def add_contour(fig, ax, lons, lats, data, levels=None, transform=crs.PlateCarre
 
 
 def add_contourf(
-    fig, ax, lons, lats, data, levels=None, colors=None, transform=crs.PlateCarree()
+    fig,
+    ax,
+    lons,
+    lats,
+    data,
+    levels=None,
+    colors=None,
+    cmap=None,
+    transform=crs.PlateCarree(),
 ):
 
     if colors is not None and levels is not None:
         cmap = mcolors.ListedColormap(colors)
+        norm = mcolors.BoundaryNorm(levels, cmap.N)
+    elif cmap is not None and levels is not None:
         norm = mcolors.BoundaryNorm(levels, cmap.N)
     else:
         cmap = None
@@ -288,27 +299,26 @@ def add_wind_barbs(
     return fig, ax
 
 
-def plot_total_precip(lons, lats, precip_in, **kwargs):
-    projection = kwargs.get("projection", crs.PlateCarree())
+def add_label_markers(fig, ax, labels):
+    """labels: ('text', (lon, lat))"""
+    for label in labels:
+        text, coords = label
+        lon, lat = coords
+        ax.text(
+            lon,
+            lat,
+            text,
+            horizontalalignment="left",
+        )
+        ax.plot(
+            lon,
+            lat,
+            markersize=2,
+            marker="o",
+            color="k",
+        )
 
-    fig, ax = create_basemap(projection=projection)
-
-    fig, ax = add_contourf(
-        fig,
-        ax,
-        lons,
-        lats,
-        precip_in,
-        PRECIP_CLEVS,
-        PRECIP_CMAP_DATA,
-    )
-
-    if "u10" in kwargs and "v10" in kwargs:
-        u10 = kwargs["u10"]
-        v10 = kwargs["v10"]
-        fig, ax = add_wind_barbs(fig, ax, lons, lats, u10, v10)
-
-    return fig
+    return fig, ax
 
 
 def plot_precip(lons, lats, precip_in, **kwargs):
@@ -354,6 +364,10 @@ def plot_swe(lons, lats, swe_in, **kwargs):
         v10 = kwargs["v10"]
         fig, ax = add_wind_barbs(fig, ax, lons, lats, u10, v10)
 
+    if "labels" in kwargs:
+        labels = kwargs["labels"]
+        fig, ax = add_label_markers(fig, ax, labels)
+
     return fig
 
 
@@ -378,24 +392,77 @@ def plot_500_vorticity(lons, lats, hgt_500, vort_500, u_500, v_500, **kwargs):
 
     fig, ax = add_wind_barbs(fig, ax, lons, lats, u_500, v_500)
 
-    if 'title' in kwargs:
-        ax.set_title(kwargs['title'])
+    if "title" in kwargs:
+        ax.set_title(kwargs["title"])
 
     return fig, ax
 
+
+def plot_700_rh(lons, lats, hgt_700, rh_700, u_700, v_700, **kwargs):
+    projection = kwargs.get("projection", crs.PlateCarree())
+
+    fig, ax = create_basemap(projection=projection)
+
+    hgt_700_levels = np.arange(180, 420, 3)
+
+    rh_clevels = [
+        0,
+        1,
+        2,
+        3,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        40,
+        50,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+        99,
+        100,
+    ]
+
+    fig, ax = add_contour(fig, ax, lons, lats, hgt_700, hgt_700_levels)
+
+    fig, ax = add_contourf(
+        fig,
+        ax,
+        lons,
+        lats,
+        rh_700,
+        levels=rh_clevels,
+        cmap=get_cmap("BrBG"),
+    )
+
+    fig, ax = add_wind_barbs(fig, ax, lons, lats, u_700, v_700)
+
+    if "title" in kwargs:
+        ax.set_title(kwargs["title"])
+
+    return fig, ax
+
+
 def test500():
-    #ds = xr.open_dataset("/home/dan/Documents/weather/wrfprd/d01_08")
+    # ds = xr.open_dataset("/home/dan/Documents/weather/wrfprd/d01_08")
     ds = Dataset("/home/dan/Documents/weather/wrfprd/d01_08")
 
-    init_time = parser.parse(ds.START_DATE.replace('_', ' '))
-    fhour = int(ds.variables['XTIME'][0] / 60)
+    init_time = parser.parse(ds.START_DATE.replace("_", " "))
+    fhour = int(ds.variables["XTIME"][0] / 60)
     valid_time = init_time + timedelta(hours=fhour)
 
     title = title_str(init_time, valid_time, fhour, "Rel Vort", "Danwrf", "10^5 s^-1")
 
     p = getvar(ds, "pressure")
     z = getvar(ds, "z", units="dm")
-    abs_vort = getvar(ds, 'avo')
+    abs_vort = getvar(ds, "avo")
     ua = getvar(ds, "ua", units="kt")
     va = getvar(ds, "va", units="kt")
 
@@ -405,12 +472,47 @@ def test500():
     v_500 = interplevel(va, p, 500)
     abs_vort_500 = interplevel(abs_vort, p, 500)  # in 10^-5
 
-    abs_vort_500 = np.clip(abs_vort_500, a_min=0, a_max=200)
+    # abs_vort_500 = np.clip(abs_vort_500, a_min=0, a_max=200)
 
     lats, lons = latlon_coords(ht_500)
 
     rel_vort_500 = abs_vort_500 - (coriolis_parameter(lats) * 10**5)
 
-    fig, ax = plot_500_vorticity(lons, lats, ht_500, rel_vort_500, u_500, v_500, title=title)
+    fig, ax = plot_500_vorticity(
+        lons, lats, ht_500, rel_vort_500, u_500, v_500, title=title
+    )
+
+    fig.show()
+
+
+def test700():
+    # ds = xr.open_dataset("/home/dan/Documents/weather/wrfprd/d01_08")
+    ds = Dataset("/home/dan/Documents/weather/wrfprd/d01_08")
+
+    init_time = parser.parse(ds.START_DATE.replace("_", " "))
+    fhour = int(ds.variables["XTIME"][0] / 60)
+    valid_time = init_time + timedelta(hours=fhour)
+
+    title = title_str(init_time, valid_time, fhour, "Rel Vort", "Danwrf", "10^5 s^-1")
+
+    p = getvar(ds, "pressure")
+    z = getvar(ds, "z", units="dm")
+    ua = getvar(ds, "ua", units="kt")
+    va = getvar(ds, "va", units="kt")
+
+    # Interpolate geopotential height, u, and v winds to 700 hPa
+    ht_700 = interplevel(z, p, 700)
+    u_700 = interplevel(ua, p, 700)
+    v_700 = interplevel(va, p, 700)
+    rh = getvar(ds, 'rh')
+    rh_700 = interplevel(rh, p, 700)
+
+    # abs_vort_700 = np.clip(abs_vort_700, a_min=0, a_max=200)
+
+    lats, lons = latlon_coords(ht_700)
+
+    fig, ax = plot_700_rh(
+        lons, lats, ht_700, rh_700, u_700, v_700, title=title
+    )
 
     fig.show()
