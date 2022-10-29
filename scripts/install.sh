@@ -1,14 +1,6 @@
 #!/bin/bash
 
-curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-source $HOME/.poetry/env
-
 sudo apt-get install -y libproj-dev build-essential gfortran g++ gcc python3-dev libgeos-dev
-
-poetry install
-
-#poetry run pip uninstall shapely
-#poetry run pip install --no-binary :all: shapely
 
 mkdir -p $(dirname $0)/href_prod/grib/12z
 mkdir -p $(dirname $0)/href_prod/grib/00z
@@ -21,7 +13,3 @@ curl -s https://prd-tnm.s3.amazonaws.com/StagedProducts/Small-scale/data/Boundar
 wget https://www2.census.gov/geo/tiger/GENZ2018/shp/cb_2018_us_county_20m.zip
 unzip cb_2018_us_county_20m.zip
 mv cb_* $(dirname $0)/../resources/
-
-
-poetry run pip3 uninstall shapely
-poetry run pip3 install shapely --no-binary shapely

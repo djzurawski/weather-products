@@ -189,7 +189,7 @@ def coriolis_parameter(lat_degrees):
     return f
 
 
-def title_str(init_dt, valid_dt, fhour, field_name, model_name="", field_units=""):
+def make_title_str(init_dt, valid_dt, fhour, field_name, model_name="", field_units=""):
 
     date_format = "%Y-%m-%dT%HZ"
     init_str = init_dt.strftime(date_format)
@@ -202,15 +202,17 @@ def title_str(init_dt, valid_dt, fhour, field_name, model_name="", field_units="
 def add_title(
     fig, ax, init_dt, valid_dt, fhour, field_name, model_name="", field_units=""
 ):
-    text = title_str(init_dt, valid_dt, fhour, field_name, model_name, field_units)
+    text = make_title_str(init_dt, valid_dt, fhour, field_name, model_name, field_units)
 
     fig.title(text)
     return fig, ax
 
 
 def create_basemap(projection=crs.PlateCarree()):
-    fig = plt.figure(figsize=(18, 10))
-    ax = plt.axes(projection=projection)
+
+    fig, ax = plt.subplots(figsize=(18, 10), subplot_kw={'projection': projection})
+    #fig = plt.figure(figsize=(18, 10))
+    #ax = plt.axes(projection=projection)
 
     border_scale = "50m"
     county_scale = "20m"
@@ -227,7 +229,14 @@ def create_basemap(projection=crs.PlateCarree()):
     return fig, ax
 
 
-def add_contour(fig, ax, lons, lats, data, levels=None, transform=crs.PlateCarree()):
+def add_contour(
+    fig,
+    ax,
+    lons,
+    lats,
+    data,
+    levels=None,
+):
 
     contours = ax.contour(
         lons,
@@ -235,7 +244,7 @@ def add_contour(fig, ax, lons, lats, data, levels=None, transform=crs.PlateCarre
         data,
         levels=levels,
         colors="black",
-        transform=transform,
+        transform=crs.PlateCarree(),
     )
     ax.clabel(contours, inline=1, fontsize=10, fmt="%i")
     return fig, ax
@@ -250,7 +259,6 @@ def add_contourf(
     levels=None,
     colors=None,
     cmap=None,
-    transform=crs.PlateCarree(),
 ):
 
     if colors is not None and levels is not None:
@@ -270,7 +278,7 @@ def add_contourf(
         levels=levels,
         norm=norm,
         cmap=cmap,
-        # transform=transform,
+        transform=crs.PlateCarree(),
     )
     fig.colorbar(contours, ax=ax, orientation="vertical", pad=0.05)
     return fig, ax
@@ -284,16 +292,19 @@ def add_wind_barbs(
     u,
     v,
     barb_length=5.5,
-    barb_interval=10,
-    transform=crs.PlateCarree(),
+    barb_interval=6,
 ):
     step = barb_interval
+
+    u = np.array(u)
+    v = np.array(v)
+
     ax.barbs(
         lons[::step, ::step],
         lats[::step, ::step],
         u[::step, ::step],
         v[::step, ::step],
-        transform=transform,
+        transform=crs.PlateCarree(),
         length=barb_length,
     )
     return fig, ax
@@ -368,7 +379,7 @@ def plot_swe(lons, lats, swe_in, **kwargs):
         labels = kwargs["labels"]
         fig, ax = add_label_markers(fig, ax, labels)
 
-    return fig
+    return fig, ax
 
 
 def plot_500_vorticity(lons, lats, hgt_500, vort_500, u_500, v_500, **kwargs):
@@ -400,7 +411,6 @@ def plot_500_vorticity(lons, lats, hgt_500, vort_500, u_500, v_500, **kwargs):
 
 def plot_700_rh(lons, lats, hgt_700, rh_700, u_700, v_700, **kwargs):
     projection = kwargs.get("projection", crs.PlateCarree())
-
     fig, ax = create_basemap(projection=projection)
 
     hgt_700_levels = np.arange(180, 420, 3)
@@ -430,7 +440,14 @@ def plot_700_rh(lons, lats, hgt_700, rh_700, u_700, v_700, **kwargs):
         100,
     ]
 
-    fig, ax = add_contour(fig, ax, lons, lats, hgt_700, hgt_700_levels)
+    fig, ax = add_contour(
+        fig,
+        ax,
+        lons,
+        lats,
+        hgt_700,
+        hgt_700_levels,
+    )
 
     fig, ax = add_contourf(
         fig,
@@ -442,7 +459,14 @@ def plot_700_rh(lons, lats, hgt_700, rh_700, u_700, v_700, **kwargs):
         cmap=get_cmap("BrBG"),
     )
 
-    fig, ax = add_wind_barbs(fig, ax, lons, lats, u_700, v_700)
+    fig, ax = add_wind_barbs(
+        fig,
+        ax,
+        lons,
+        lats,
+        u_700,
+        v_700,
+    )
 
     if "title" in kwargs:
         ax.set_title(kwargs["title"])
@@ -458,7 +482,9 @@ def test500():
     fhour = int(ds.variables["XTIME"][0] / 60)
     valid_time = init_time + timedelta(hours=fhour)
 
-    title = title_str(init_time, valid_time, fhour, "Rel Vort", "Danwrf", "10^5 s^-1")
+    title = make_title_str(
+        init_time, valid_time, fhour, "Rel Vort", "Danwrf", "10^5 s^-1"
+    )
 
     p = getvar(ds, "pressure")
     z = getvar(ds, "z", units="dm")
@@ -475,11 +501,12 @@ def test500():
     # abs_vort_500 = np.clip(abs_vort_500, a_min=0, a_max=200)
 
     lats, lons = latlon_coords(ht_500)
+    lats_wind, lons_wind = latlon_coords(u_500)
 
     rel_vort_500 = abs_vort_500 - (coriolis_parameter(lats) * 10**5)
 
     fig, ax = plot_500_vorticity(
-        lons, lats, ht_500, rel_vort_500, u_500, v_500, title=title
+        lons_wind, lats_wind, ht_500, rel_vort_500, u_500, v_500, title=title
     )
 
     fig.show()
@@ -497,22 +524,97 @@ def test700():
 
     p = getvar(ds, "pressure")
     z = getvar(ds, "z", units="dm")
-    ua = getvar(ds, "ua", units="kt")
-    va = getvar(ds, "va", units="kt")
+    #ua = getvar(ds, "ua", units="kt")
+    #va = getvar(ds, "va", units="kt")
+    ua = getvar(ds, "U")
+    va = getvar(ds, "V")
 
     # Interpolate geopotential height, u, and v winds to 700 hPa
     ht_700 = interplevel(z, p, 700)
     u_700 = interplevel(ua, p, 700)
     v_700 = interplevel(va, p, 700)
-    rh = getvar(ds, 'rh')
+    rh = getvar(ds, "rh")
     rh_700 = interplevel(rh, p, 700)
 
     # abs_vort_700 = np.clip(abs_vort_700, a_min=0, a_max=200)
 
     lats, lons = latlon_coords(ht_700)
 
-    fig, ax = plot_700_rh(
-        lons, lats, ht_700, rh_700, u_700, v_700, title=title
+    fig, ax = plot_700_rh(lons, lats, ht_700, rh_700, u_700, v_700, title=title)
+
+    fig.show()
+
+
+
+def testbarbs():
+    # ds = xr.open_dataset("/home/dan/Documents/weather/wrfprd/d01_08")
+    ds = Dataset("/home/dan/Documents/weather/wrfprd/d01_08")
+
+    init_time = parser.parse(ds.START_DATE.replace("_", " "))
+    fhour = int(ds.variables["XTIME"][0] / 60)
+    valid_time = init_time + timedelta(hours=fhour)
+
+    title = make_title_str(
+        init_time, valid_time, fhour, "Rel Vort", "Danwrf", "10^5 s^-1"
     )
+
+    p = getvar(ds, "pressure")
+    z = getvar(ds, "z", units="dm")
+    abs_vort = getvar(ds, "avo")
+    #ua = getvar(ds, "ua", units="kt")
+    #va = getvar(ds, "va", units="kt")
+
+    ua = getvar(ds, "ua", units="kt")
+    va = getvar(ds, "va", units="kt")
+
+    uv = getvar(ds, "uvmet", units="kt")
+    ua = uv[0]
+    va = uv[1]
+
+
+    # Interpolate geopotential height, u, and v winds to 500 hPa
+    ht_500 = interplevel(z, p, 500)
+    u_500 = np.array(interplevel(ua, p, 500))
+    v_500 = np.array(interplevel(va, p, 500))
+    abs_vort_500 = interplevel(abs_vort, p, 500)  # in 10^-5
+
+    # abs_vort_500 = np.clip(abs_vort_500, a_min=0, a_max=200)
+
+    lats, lons = latlon_coords(ht_500, as_np=True)
+    projection = get_cartopy(ht_500)
+    #projection = crs.PlateCarree()
+    import pyproj
+
+    lam_x, lam_y = pyproj.Proj(projection)(lons, lats)
+
+    rel_vort_500 = abs_vort_500 - (coriolis_parameter(lats) * 10**5)
+
+    fig, ax = create_basemap(projection)
+
+    step = 6
+    barb_length=5.5
+
+    #lats_wind, lons_wind = latlon_coords(u_500)
+
+    """
+    ax.barbs(
+        lam_x[::step, ::step],
+        lam_y[::step, ::step],
+        u_500[::step, ::step],
+        v_500[::step, ::step],
+        length=barb_length,
+    )
+    """
+
+    ax.barbs(
+        lons[::step, ::step],
+        lats[::step, ::step],
+        u_500[::step, ::step],
+        v_500[::step, ::step],
+        transform=crs.PlateCarree(),
+        length=barb_length,)
+
+    hgt_500_levels = np.arange(492, 594, 3)
+    fig, ax = add_contour(fig, ax, lons, lats, ht_500, hgt_500_levels)
 
     fig.show()
