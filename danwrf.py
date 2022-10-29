@@ -26,6 +26,14 @@ from wrf import (
 UT_NC_DIR = "/home/dan/uems/runs/wasatch/wrfprd"
 CO_NC_DIR = "/home/dan/uems/runs/colorado3nest/wrfprd"
 
+CO_LABELS = [('Boulder', (-105.27, 40.01)),
+             ('WinterPark', (-105.77, 39.867)),
+             ('Abasin', (-105.876, 39.63)),
+             ('Copper', (-106.15, 39.48)),
+             ('Eldora', (-105.6, 39.94)),
+             ('Steamboat', (-106.75, 40.45)),
+             ('Vail', (-106.37, 39.617))]
+
 # NC_DIR = '/home/dan/Documents/wrfprd'
 # NC_DIR = '/home/dan/Documents/wrfprd_ut'
 # IMAGE_DIR = "wrf_prod/images"
@@ -346,11 +354,11 @@ if __name__ == "__main__":
     with mp.Pool() as pool:
         res_swe_d01 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d01"))
         res_swe_d02 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d02"))
-        res_swe_d03 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d03"))
+        res_swe_d03 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d03", CO_LABELS))
 
         res_precip_d01 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d01"))
         res_precip_d02 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d02"))
-        res_precip_d03 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d03"))
+        res_precip_d03 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d03", CO_LABELS))
 
         res_rh_700_d01 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d01"))
         res_rh_700_d02 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d02"))
