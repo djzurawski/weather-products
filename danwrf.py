@@ -360,18 +360,5 @@ if __name__ == "__main__":
         res_vort_500_d02 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d02"))
         res_vort_500_d03 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d03"))
 
-        res_swe_d01.wait()
-        res_swe_d02.wait()
-        res_swe_d03.wait()
-
-        res_precip_d01.wait()
-        res_precip_d02.wait()
-        res_precip_d03.wait()
-
-        res_rh_700_d01.wait()
-        res_rh_700_d02.wait()
-        res_rh_700_d03.wait()
-
-        res_vort_500_d01.wait()
-        res_vort_500_d02.wait()
-        res_vort_500_d03.wait()
+        pool.close()
+        pool.join()
