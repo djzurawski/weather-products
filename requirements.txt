@@ -1,0 +1,9 @@
+numpy
+requests
+requests-futures
+cartopy
+netCDF4
+wrf-python
+MetPy
+cfgrib
+shapely==1.7.1
