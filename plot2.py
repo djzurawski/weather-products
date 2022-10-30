@@ -299,9 +299,10 @@ def add_wind_barbs(
     u,
     v,
     barb_length=5.5,
-    barb_interval=8,
+    #barb_interval=8,
 ):
-    step = barb_interval
+    #step = barb_interval
+    step = int(lons.shape[0] // 20)
 
     u = np.array(u)
     v = np.array(v)

@@ -92,7 +92,7 @@ def accumulated_swe_plots(
         )
 
         ax.set_title(title)
-        fig.savefig(f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-swe-{fhour_str}.png")
+        fig.savefig(f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-swe-{fhour_str}.png", bbox_inches='tight')
         plt.close(fig)
 
 
@@ -108,7 +108,7 @@ def accumulated_precip_plots(
 
         ds = Dataset(nc_dir + "/" + nc_file)
 
-        swe_in = ds.variables["RAINNC"][0] * MM_TO_IN
+        precip_in = ds.variables["RAINNC"][0] * MM_TO_IN
         lons = np.array(ds.variables["XLONG"][0])
         lats = np.array(ds.variables["XLAT"][0])
 
@@ -122,7 +122,7 @@ def accumulated_precip_plots(
         valid_time = init_time + timedelta(hours=fhour)
 
         title = plot2.make_title_str(
-            init_time, valid_time, fhour, "swe", "danwrf", "in"
+            init_time, valid_time, fhour, "precip", "danwrf", "in"
         )
         print("saving precip", domain, cycle, fhour)
 
@@ -133,11 +133,11 @@ def accumulated_precip_plots(
         )
 
         fig, ax = plot2.plot_swe(
-            lons, lats, swe_in, u10=u_10, v10=v_10, labels=labels, projection=projection
+            lons, lats, precip_in, u10=u_10, v10=v_10, labels=labels, projection=projection
         )
 
         ax.set_title(title)
-        fig.savefig(f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-precip-{fhour_str}.png")
+        fig.savefig(f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-precip-{fhour_str}.png", bbox_inches='tight')
         plt.close(fig)
 
 
