@@ -643,7 +643,8 @@ def plot_terrain():
     ]
 
     # ds = Dataset("geo_em.d01.nc")
-    ds = Dataset("4km.nc")
+    #ds = Dataset("4km.nc")
+    ds = Dataset("summit1km.nc")
 
     h = ds["HGT_M"][0] * 3.281
     lats = ds["XLAT_M"][0]
@@ -654,7 +655,7 @@ def plot_terrain():
     fig, ax = create_basemap(projection)
 
     levels = np.linspace(4000, 13000, 100)
-    cmap = get_cmap("BrBG")
+    cmap = get_cmap("Spectral")
     norm = mcolors.BoundaryNorm(levels, cmap.N)
     ax.pcolormesh(lons, lats, h, cmap=cmap, norm=norm, transform=crs.PlateCarree())
 
