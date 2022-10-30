@@ -25,7 +25,7 @@ from wrf import (
 M_PER_S_TO_KT = 1.94384
 MM_TO_IN = 0.03937008
 
-VORT_CMAP = (
+VORT_COLORS = (
     np.array(
         [
             (255, 255, 255),
@@ -183,6 +183,13 @@ RH_LEVELS = [
 ]
 
 
+def get_barb_interval(domain):
+    if domain == "d02":
+        return 6
+    else:
+        return 8
+
+
 def coriolis_parameter(lat_degrees):
     lat_rads = lat_degrees * (np.pi / 180)
     f = 2 * 7.2921e-5 * np.sin(lat_rads)
@@ -210,9 +217,9 @@ def add_title(
 
 def create_basemap(projection=crs.PlateCarree()):
 
-    fig, ax = plt.subplots(figsize=(18, 10), subplot_kw={'projection': projection})
-    #fig = plt.figure(figsize=(18, 10))
-    #ax = plt.axes(projection=projection)
+    fig, ax = plt.subplots(figsize=(18, 10), subplot_kw={"projection": projection})
+    # fig = plt.figure(figsize=(18, 10))
+    # ax = plt.axes(projection=projection)
 
     border_scale = "50m"
     county_scale = "20m"
@@ -270,12 +277,12 @@ def add_contourf(
         cmap = None
         norm = None
 
-    contours = ax.contourf(
+    contours = ax.pcolormesh(
         lons,
         lats,
         data,
-        levels,
-        levels=levels,
+        # levels,
+        # levels=levels,
         norm=norm,
         cmap=cmap,
         transform=crs.PlateCarree(),
@@ -292,7 +299,7 @@ def add_wind_barbs(
     u,
     v,
     barb_length=5.5,
-    barb_interval=6,
+    barb_interval=8,
 ):
     step = barb_interval
 
@@ -315,18 +322,9 @@ def add_label_markers(fig, ax, labels):
     for label in labels:
         text, coords = label
         lon, lat = coords
-        ax.text(
-            lon,
-            lat,
-            text,
-            horizontalalignment="left",
-        )
+        ax.text(lon, lat, text, horizontalalignment="left", transform=crs.PlateCarree())
         ax.plot(
-            lon,
-            lat,
-            markersize=2,
-            marker="o",
-            color="k",
+            lon, lat, markersize=2, marker="o", color="k", transform=crs.PlateCarree()
         )
 
     return fig, ax
@@ -397,8 +395,8 @@ def plot_500_vorticity(lons, lats, hgt_500, vort_500, u_500, v_500, **kwargs):
         lons,
         lats,
         vort_500,
-        VORT_LEVELS,
-        VORT_CMAP,
+        levels=VORT_LEVELS,
+        colors=VORT_COLORS,
     )
 
     fig, ax = add_wind_barbs(fig, ax, lons, lats, u_500, v_500)
@@ -524,8 +522,8 @@ def test700():
 
     p = getvar(ds, "pressure")
     z = getvar(ds, "z", units="dm")
-    #ua = getvar(ds, "ua", units="kt")
-    #va = getvar(ds, "va", units="kt")
+    # ua = getvar(ds, "ua", units="kt")
+    # va = getvar(ds, "va", units="kt")
     ua = getvar(ds, "U")
     va = getvar(ds, "V")
 
@@ -545,7 +543,6 @@ def test700():
     fig.show()
 
 
-
 def testbarbs():
     # ds = xr.open_dataset("/home/dan/Documents/weather/wrfprd/d01_08")
     ds = Dataset("/home/dan/Documents/weather/wrfprd/d01_08")
@@ -561,8 +558,8 @@ def testbarbs():
     p = getvar(ds, "pressure")
     z = getvar(ds, "z", units="dm")
     abs_vort = getvar(ds, "avo")
-    #ua = getvar(ds, "ua", units="kt")
-    #va = getvar(ds, "va", units="kt")
+    # ua = getvar(ds, "ua", units="kt")
+    # va = getvar(ds, "va", units="kt")
 
     ua = getvar(ds, "ua", units="kt")
     va = getvar(ds, "va", units="kt")
@@ -570,7 +567,6 @@ def testbarbs():
     uv = getvar(ds, "uvmet", units="kt")
     ua = uv[0]
     va = uv[1]
-
 
     # Interpolate geopotential height, u, and v winds to 500 hPa
     ht_500 = interplevel(z, p, 500)
@@ -582,7 +578,7 @@ def testbarbs():
 
     lats, lons = latlon_coords(ht_500, as_np=True)
     projection = get_cartopy(ht_500)
-    #projection = crs.PlateCarree()
+    # projection = crs.PlateCarree()
     import pyproj
 
     lam_x, lam_y = pyproj.Proj(projection)(lons, lats)
@@ -592,9 +588,9 @@ def testbarbs():
     fig, ax = create_basemap(projection)
 
     step = 6
-    barb_length=5.5
+    barb_length = 5.5
 
-    #lats_wind, lons_wind = latlon_coords(u_500)
+    # lats_wind, lons_wind = latlon_coords(u_500)
 
     """
     ax.barbs(
@@ -612,9 +608,43 @@ def testbarbs():
         u_500[::step, ::step],
         v_500[::step, ::step],
         transform=crs.PlateCarree(),
-        length=barb_length,)
+        length=barb_length,
+    )
 
     hgt_500_levels = np.arange(492, 594, 3)
     fig, ax = add_contour(fig, ax, lons, lats, ht_500, hgt_500_levels)
+
+    fig.show()
+
+
+def plot_terrain():
+
+    CO_LABELS = [
+        ("Boulder", (-105.27, 40.01)),
+        ("WinterPark", (-105.77, 39.867)),
+        ("Abasin", (-105.876, 39.63)),
+        ("Copper", (-106.15, 39.48)),
+        ("Eldora", (-105.6, 39.94)),
+        ("Steamboat", (-106.75, 40.45)),
+        ("Vail", (-106.37, 39.617)),
+    ]
+
+    # ds = Dataset("geo_em.d01.nc")
+    ds = Dataset("4km.nc")
+
+    h = ds["HGT_M"][0] * 3.281
+    lats = ds["XLAT_M"][0]
+    lons = ds["XLONG_M"][0]
+
+    projection = crs.LambertConformal(central_longitude=-105, central_latitude=40)
+
+    fig, ax = create_basemap(projection)
+
+    levels = np.linspace(4000, 13000, 100)
+    cmap = get_cmap("BrBG")
+    norm = mcolors.BoundaryNorm(levels, cmap.N)
+    ax.pcolormesh(lons, lats, h, cmap=cmap, norm=norm, transform=crs.PlateCarree())
+
+    fig, ax = add_label_markers(fig, ax, CO_LABELS)
 
     fig.show()

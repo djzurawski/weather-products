@@ -51,7 +51,6 @@ def domain_netcdf_files(domain="d02", path=UT_NC_DIR):
     domain_files = sorted([f for f in os.listdir(path) if domain in f])
     return domain_files
 
-
 def accumulated_swe_plots(
     nc_dir=UT_NC_DIR,
     domain="d02",
@@ -125,7 +124,7 @@ def accumulated_precip_plots(
         title = plot2.make_title_str(
             init_time, valid_time, fhour, "swe", "danwrf", "in"
         )
-        print("saving swe", domain, cycle, fhour)
+        print("saving precip", domain, cycle, fhour)
 
         mid_lon = np.median(lons)
         mid_lat = np.median(lats)
@@ -138,7 +137,7 @@ def accumulated_precip_plots(
         )
 
         ax.set_title(title)
-        fig.savefig(f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-swe-{fhour_str}.png")
+        fig.savefig(f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-precip-{fhour_str}.png")
         plt.close(fig)
 
 
@@ -318,15 +317,16 @@ def test_swe():
 
 if __name__ == "__main__":
 
-    CO_NC_DIR = "/home/dan/Documents/weather/wrfprd/"
-    """
+    #CO_NC_DIR = "/home/dan/Documents/weather/wrfprd/"
 
+    """
     accumulated_swe_plots(
         nc_dir=CO_NC_DIR,
         domain="d03",
         labels=bmap.CO_D2.labels,
         central_longitude=-106.5,
     )
+
 
     accumulated_swe_plots(
         nc_dir=CO_NC_DIR,
@@ -353,20 +353,20 @@ if __name__ == "__main__":
     # accumulated_swe_plots()
     with mp.Pool() as pool:
         res_swe_d01 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d01"))
-        res_swe_d02 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d02"))
-        res_swe_d03 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d03", CO_LABELS))
+        res_swe_d02 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d02", CO_LABELS))
+        #res_swe_d03 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d03", CO_LABELS))
 
         res_precip_d01 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d01"))
-        res_precip_d02 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d02"))
-        res_precip_d03 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d03", CO_LABELS))
+        res_precip_d02 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d02", CO_LABELS))
+        #res_precip_d03 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d03", CO_LABELS))
 
         res_rh_700_d01 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d01"))
-        res_rh_700_d02 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d02"))
-        res_rh_700_d03 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d03"))
+        res_rh_700_d02 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d02", CO_LABELS))
+        #res_rh_700_d03 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d03"))
 
         res_vort_500_d01 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d01"))
-        res_vort_500_d02 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d02"))
-        res_vort_500_d03 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d03"))
+        res_vort_500_d02 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d02", CO_LABELS))
+        #res_vort_500_d03 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d03"))
 
         pool.close()
         pool.join()
