@@ -24,15 +24,17 @@ from wrf import (
 
 
 UT_NC_DIR = "/home/dan/uems/runs/wasatch/wrfprd"
-CO_NC_DIR = "/home/dan/uems/runs/colorado3nest/wrfprd"
+CO_NC_DIR = "/home/dan/uems/runs/colorado5km/wrfprd"
 
-CO_LABELS = [('Boulder', (-105.27, 40.01)),
-             ('WinterPark', (-105.77, 39.867)),
-             ('Abasin', (-105.876, 39.63)),
-             ('Copper', (-106.15, 39.48)),
-             ('Eldora', (-105.6, 39.94)),
-             ('Steamboat', (-106.75, 40.45)),
-             ('Vail', (-106.37, 39.617))]
+CO_LABELS = [
+    ("Boulder", (-105.27, 40.01)),
+    ("WinterPark", (-105.77, 39.867)),
+    ("Abasin", (-105.876, 39.63)),
+    ("Copper", (-106.15, 39.48)),
+    ("Eldora", (-105.6, 39.94)),
+    ("Steamboat", (-106.75, 40.45)),
+    ("Vail", (-106.37, 39.617)),
+]
 
 # NC_DIR = '/home/dan/Documents/wrfprd'
 # NC_DIR = '/home/dan/Documents/wrfprd_ut'
@@ -50,6 +52,7 @@ def coriolis_parameter(lat_degrees):
 def domain_netcdf_files(domain="d02", path=UT_NC_DIR):
     domain_files = sorted([f for f in os.listdir(path) if domain in f])
     return domain_files
+
 
 def accumulated_swe_plots(
     nc_dir=UT_NC_DIR,
@@ -92,7 +95,10 @@ def accumulated_swe_plots(
         )
 
         ax.set_title(title)
-        fig.savefig(f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-swe-{fhour_str}.png", bbox_inches='tight')
+        fig.savefig(
+            f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-swe-{fhour_str}.png",
+            bbox_inches="tight",
+        )
         plt.close(fig)
 
 
@@ -133,11 +139,20 @@ def accumulated_precip_plots(
         )
 
         fig, ax = plot2.plot_swe(
-            lons, lats, precip_in, u10=u_10, v10=v_10, labels=labels, projection=projection
+            lons,
+            lats,
+            precip_in,
+            u10=u_10,
+            v10=v_10,
+            labels=labels,
+            projection=projection,
         )
 
         ax.set_title(title)
-        fig.savefig(f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-precip-{fhour_str}.png", bbox_inches='tight')
+        fig.savefig(
+            f"wrf_prod/images/{cycle}z/{domain}-{cycle}z-precip-{fhour_str}.png",
+            bbox_inches="tight",
+        )
         plt.close(fig)
 
 
@@ -317,7 +332,7 @@ def test_swe():
 
 if __name__ == "__main__":
 
-    #CO_NC_DIR = "/home/dan/Documents/weather/wrfprd/"
+    # CO_NC_DIR = "/home/dan/Documents/weather/wrfprd/"
 
     """
     accumulated_swe_plots(
@@ -353,20 +368,26 @@ if __name__ == "__main__":
     # accumulated_swe_plots()
     with mp.Pool() as pool:
         res_swe_d01 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d01"))
-        res_swe_d02 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d02", CO_LABELS))
-        #res_swe_d03 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d03", CO_LABELS))
+        res_swe_d02 = pool.apply_async(
+            accumulated_swe_plots, (CO_NC_DIR, "d02", CO_LABELS)
+        )
+        # res_swe_d03 = pool.apply_async(accumulated_swe_plots, (CO_NC_DIR, "d03", CO_LABELS))
 
         res_precip_d01 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d01"))
-        res_precip_d02 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d02", CO_LABELS))
-        #res_precip_d03 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d03", CO_LABELS))
+        res_precip_d02 = pool.apply_async(
+            accumulated_precip_plots, (CO_NC_DIR, "d02", CO_LABELS)
+        )
+        # res_precip_d03 = pool.apply_async(accumulated_precip_plots, (CO_NC_DIR, "d03", CO_LABELS))
 
         res_rh_700_d01 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d01"))
         res_rh_700_d02 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d02", CO_LABELS))
-        #res_rh_700_d03 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d03"))
+        # res_rh_700_d03 = pool.apply_async(rh_700_plots, (CO_NC_DIR, "d03"))
 
         res_vort_500_d01 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d01"))
-        res_vort_500_d02 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d02", CO_LABELS))
-        #res_vort_500_d03 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d03"))
+        res_vort_500_d02 = pool.apply_async(
+            vort_500_plots, (CO_NC_DIR, "d02", CO_LABELS)
+        )
+        # res_vort_500_d03 = pool.apply_async(vort_500_plots, (CO_NC_DIR, "d03"))
 
         pool.close()
         pool.join()

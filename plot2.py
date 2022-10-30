@@ -277,6 +277,17 @@ def add_contourf(
         cmap = None
         norm = None
 
+    contours = ax.contourf(
+        lons,
+        lats,
+        data,
+        levels=levels,
+        norm=norm,
+        cmap=cmap,
+        transform=crs.PlateCarree(),
+    )
+
+    """
     contours = ax.pcolormesh(
         lons,
         lats,
@@ -287,6 +298,7 @@ def add_contourf(
         cmap=cmap,
         transform=crs.PlateCarree(),
     )
+    """
     fig.colorbar(contours, ax=ax, orientation="vertical", pad=0.05)
     return fig, ax
 
@@ -299,9 +311,9 @@ def add_wind_barbs(
     u,
     v,
     barb_length=5.5,
-    #barb_interval=8,
+    # barb_interval=8,
 ):
-    #step = barb_interval
+    # step = barb_interval
     step = int(lons.shape[0] // 20)
 
     u = np.array(u)
