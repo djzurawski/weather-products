@@ -393,6 +393,31 @@ def plot_swe(lons, lats, swe_in, **kwargs):
     return fig, ax
 
 
+def plot_temp_2m(lons, lats, temp, **kwargs):
+    projection = kwargs.get("projection", crs.PlateCarree())
+
+    fig, ax = create_basemap(projection=projection)
+
+    fig, ax = add_contourf(
+        fig,
+        ax,
+        lons,
+        lats,
+        temp,
+    )
+
+    if "u10" in kwargs and "v10" in kwargs:
+        u10 = kwargs["u10"]
+        v10 = kwargs["v10"]
+        fig, ax = add_wind_barbs(fig, ax, lons, lats, u10, v10)
+
+    if "labels" in kwargs:
+        labels = kwargs["labels"]
+        fig, ax = add_label_markers(fig, ax, labels)
+
+    return fig, ax
+
+
 def plot_500_vorticity(lons, lats, hgt_500, vort_500, u_500, v_500, **kwargs):
     projection = kwargs.get("projection", crs.PlateCarree())
 
@@ -643,7 +668,7 @@ def plot_terrain():
     ]
 
     # ds = Dataset("geo_em.d01.nc")
-    #ds = Dataset("4km.nc")
+    # ds = Dataset("4km.nc")
     ds = Dataset("summit1km.nc")
 
     h = ds["HGT_M"][0] * 3.281

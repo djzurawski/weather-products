@@ -147,6 +147,46 @@ def accumulated_precip_plots(wrfprd_dir, domain_name, wrf_domain="d02", labels=[
         plt.close(fig)
 
 
+def temp_2m_plot(nc_path, domain_name):
+    ds = Dataset(nc_path)
+    init_time = parser.parse(ds.START_DATE.replace("_", " "))
+    cycle = str(init_time.hour).zfill(2)
+    fhour = int(ds.variables["XTIME"][0] / 60)
+    valid_time = init_time + timedelta(hours=fhour)
+    fhour_str = str(fhour).zfill(2)
+
+    temp = ds.variables["T2"][0]
+    lons = np.array(ds.variables["XLONG"][0])
+    lats = np.array(ds.variables["XLAT"][0])
+
+    u_10 = ds.variables["U10"][0]
+    v_10 = ds.variables["V10"][0]
+
+    mid_lon = np.median(lons)
+    mid_lat = np.median(lats)
+    projection = crs.LambertConformal(
+        central_latitude=mid_lat, central_longitude=mid_lon
+    )
+
+    title = plot2.make_title_str(init_time, valid_time, fhour, "precip", "danwrf", "in")
+
+    fig, ax = plot2.plot_temp_2m(
+        lons,
+        lats,
+        temp,
+        u10=u_10,
+        v10=v_10,
+        projection=projection,
+    )
+
+    ax.set_title(title)
+    fig.savefig(
+        f"wrf_prod/images/{cycle}z/{domain_name}-{cycle}z-2m_temp-{fhour_str}.png",
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
+
 def vort_500_plot(nc_path, domain_name):
     ds = Dataset(nc_path)
     init_time = parser.parse(ds.START_DATE.replace("_", " "))
@@ -199,6 +239,16 @@ def vort_500_plot(nc_path, domain_name):
     )
 
     plt.close(fig)
+
+
+def temp_2m_plots(wrfprd_dir, domain_name, wrf_domain="d01"):
+    nc_paths = [
+        wrfprd_dir + "/" + nc_file
+        for nc_file in domain_netcdf_files(path=wrfprd_dir, wrf_domain=wrf_domain)
+    ]
+
+    for nc_path in nc_paths:
+        temp_2m_plot(nc_path, domain_name)
 
 
 def vort_500_plots(wrfprd_dir, domain_name, wrf_domain="d01"):
@@ -295,6 +345,7 @@ def main(wrfprd_path, domain_name, wrf_domain="d01", labels=[]):
     # Do it this way because mp.Pool() freezes computer when using after calling
     # accumulated_swe_plots()
     with mp.Pool() as pool:
+        """
         pool.apply_async(
             accumulated_swe_plots,
             (wrfprd_path, domain_name, wrf_domain, labels),
@@ -315,6 +366,13 @@ def main(wrfprd_path, domain_name, wrf_domain="d01", labels=[]):
             (wrfprd_path, domain_name, wrf_domain),
             error_callback=error_callback,
         )
+        """
+
+        pool.apply_async(
+            temp_2m_plots,
+            (wrfprd_path, domain_name, wrf_domain),
+            error_callback=error_callback,
+        )
 
         pool.close()
         pool.join()
@@ -322,9 +380,9 @@ def main(wrfprd_path, domain_name, wrf_domain="d01", labels=[]):
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Danwrf plot generator")
-    argparser.add_argument("-p", "--wrfprd_path", type=str, required=True)
+    argparser.add_argument("-p", "--wrfprd-path", type=str, required=True)
     argparser.add_argument("-d", "--domain-name", type=str, required=True)
-    argparser.add_argument("-n", "--num_nests", type=int, default=1)
+    argparser.add_argument("-n", "--num-nests", type=int, default=1)
 
     args = argparser.parse_args()
 
@@ -332,8 +390,8 @@ if __name__ == "__main__":
     wrfprd_path = args.wrfprd_path
     num_nests = args.num_nests
 
-    wrf_domains = ["d0" + str(i) for i in range(1, num_nests+1)]
-    domain_names = [domain_name + d for d in wrf_domains]
+    wrf_domains = ["d0" + str(i) for i in range(1, num_nests + 1)]
+    domain_names = [f"{domain_name}-{d}" for d in wrf_domains]
 
     for domain_name, wrf_domain in zip(domain_names, wrf_domains):
         print(wrfprd_path, domain_name, wrf_domain)
