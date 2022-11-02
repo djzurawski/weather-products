@@ -398,13 +398,11 @@ def plot_temp_2m(lons, lats, temp, **kwargs):
 
     fig, ax = create_basemap(projection=projection)
 
-    fig, ax = add_contourf(
-        fig,
-        ax,
-        lons,
-        lats,
-        temp,
-    )
+    # cmap=get_cmap('gist_ncar')
+    cmap = get_cmap("nipy_spectral")
+    levels = np.arange(-20, 100, 1)
+
+    fig, ax = add_contourf(fig, ax, lons, lats, temp, levels=levels, cmap=cmap)
 
     if "u10" in kwargs and "v10" in kwargs:
         u10 = kwargs["u10"]
@@ -687,3 +685,36 @@ def plot_terrain():
     fig, ax = add_label_markers(fig, ax, CO_LABELS)
 
     fig.show()
+
+
+def tst():
+    def k_to_f(k):
+        f = (k - 273.15) * (9 / 5) + 32
+        return f
+
+    ds = Dataset("/home/dan/Documents/weather/wrfprd/d01_06")
+
+    temp_k = ds.variables["T2"][0]
+    temp_f = k_to_f(temp_k)
+    lons = np.array(ds.variables["XLONG"][0])
+    lats = np.array(ds.variables["XLAT"][0])
+
+    u_10 = ds.variables["U10"][0]
+    v_10 = ds.variables["V10"][0]
+
+    mid_lon = np.median(lons)
+    mid_lat = np.median(lats)
+    projection = crs.LambertConformal(
+        central_latitude=mid_lat, central_longitude=mid_lon
+    )
+
+    fig, ax = plot_temp_2m(
+        lons,
+        lats,
+        temp_f,
+        u10=u_10,
+        v10=v_10,
+        projection=projection,
+    )
+
+    plt.show()

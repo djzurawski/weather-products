@@ -41,6 +41,11 @@ CO_LABELS = [
 MM_TO_IN = 0.03937008
 
 
+def k_to_f(k):
+    f = (k - 273.15) * (9/5) + 32
+    return f
+
+
 def coriolis_parameter(lat_degrees):
     lat_rads = lat_degrees * (np.pi / 180)
     f = 2 * 7.2921e-5 * np.sin(lat_rads)
@@ -155,7 +160,8 @@ def temp_2m_plot(nc_path, domain_name):
     valid_time = init_time + timedelta(hours=fhour)
     fhour_str = str(fhour).zfill(2)
 
-    temp = ds.variables["T2"][0]
+    temp_k = ds.variables["T2"][0]
+    temp_f = k_to_f(temp_k)
     lons = np.array(ds.variables["XLONG"][0])
     lats = np.array(ds.variables["XLAT"][0])
 
@@ -173,7 +179,7 @@ def temp_2m_plot(nc_path, domain_name):
     fig, ax = plot2.plot_temp_2m(
         lons,
         lats,
-        temp,
+        temp_f,
         u10=u_10,
         v10=v_10,
         projection=projection,
@@ -345,7 +351,6 @@ def main(wrfprd_path, domain_name, wrf_domain="d01", labels=[]):
     # Do it this way because mp.Pool() freezes computer when using after calling
     # accumulated_swe_plots()
     with mp.Pool() as pool:
-        """
         pool.apply_async(
             accumulated_swe_plots,
             (wrfprd_path, domain_name, wrf_domain, labels),
@@ -366,7 +371,6 @@ def main(wrfprd_path, domain_name, wrf_domain="d01", labels=[]):
             (wrfprd_path, domain_name, wrf_domain),
             error_callback=error_callback,
         )
-        """
 
         pool.apply_async(
             temp_2m_plots,
