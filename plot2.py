@@ -399,8 +399,9 @@ def plot_temp_2m(lons, lats, temp, **kwargs):
     fig, ax = create_basemap(projection=projection)
 
     # cmap=get_cmap('gist_ncar')
-    cmap = get_cmap("nipy_spectral")
-    levels = np.arange(-20, 100, 1)
+    #cmap = get_cmap("nipy_spectral")
+    cmap = get_cmap("jet")
+    levels = np.arange(-30, 110, 5)
 
     fig, ax = add_contourf(fig, ax, lons, lats, temp, levels=levels, cmap=cmap)
 
