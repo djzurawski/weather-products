@@ -174,7 +174,7 @@ def temp_2m_plot(nc_path, domain_name):
         central_latitude=mid_lat, central_longitude=mid_lon
     )
 
-    title = plot2.make_title_str(init_time, valid_time, fhour, "precip", "danwrf", "in")
+    title = plot2.make_title_str(init_time, valid_time, fhour, "temp", "danwrf", "F")
 
     fig, ax = plot2.plot_temp_2m(
         lons,
