@@ -42,7 +42,7 @@ MM_TO_IN = 0.03937008
 
 
 def k_to_f(k):
-    f = (k - 273.15) * (9/5) + 32
+    f = (k - 273.15) * (9 / 5) + 32
     return f
 
 
@@ -346,37 +346,38 @@ def error_callback(e):
     print(e)
 
 
-def main(wrfprd_path, domain_name, wrf_domain="d01", labels=[]):
+def main(wrfprd_path, domain_names, wrf_domains=["d01"], labels=[]):
 
     # Do it this way because mp.Pool() freezes computer when using after calling
     # accumulated_swe_plots()
     with mp.Pool() as pool:
-        pool.apply_async(
-            accumulated_swe_plots,
-            (wrfprd_path, domain_name, wrf_domain, labels),
-            error_callback=error_callback,
-        )
-        pool.apply_async(
-            accumulated_precip_plots,
-            (wrfprd_path, domain_name, wrf_domain, labels),
-            error_callback=error_callback,
-        )
-        pool.apply_async(
-            rh_700_plots,
-            (wrfprd_path, domain_name, wrf_domain),
-            error_callback=error_callback,
-        )
-        pool.apply_async(
-            vort_500_plots,
-            (wrfprd_path, domain_name, wrf_domain),
-            error_callback=error_callback,
-        )
+        for domain_name, wrf_domain in zip(domain_names, wrf_domains):
+            pool.apply_async(
+                accumulated_swe_plots,
+                (wrfprd_path, domain_name, wrf_domain, labels),
+                error_callback=error_callback,
+            )
+            pool.apply_async(
+                accumulated_precip_plots,
+                (wrfprd_path, domain_name, wrf_domain, labels),
+                error_callback=error_callback,
+            )
+            pool.apply_async(
+                rh_700_plots,
+                (wrfprd_path, domain_name, wrf_domain),
+                error_callback=error_callback,
+            )
+            pool.apply_async(
+                vort_500_plots,
+                (wrfprd_path, domain_name, wrf_domain),
+                error_callback=error_callback,
+            )
 
-        pool.apply_async(
-            temp_2m_plots,
-            (wrfprd_path, domain_name, wrf_domain),
-            error_callback=error_callback,
-        )
+            pool.apply_async(
+                temp_2m_plots,
+                (wrfprd_path, domain_name, wrf_domain),
+                error_callback=error_callback,
+            )
 
         pool.close()
         pool.join()
@@ -397,6 +398,5 @@ if __name__ == "__main__":
     wrf_domains = ["d0" + str(i) for i in range(1, num_nests + 1)]
     domain_names = [f"{domain_name}-{d}" for d in wrf_domains]
 
-    for domain_name, wrf_domain in zip(domain_names, wrf_domains):
-        print(wrfprd_path, domain_name, wrf_domain)
-        main(wrfprd_path, domain_name, wrf_domain)
+    print(wrfprd_path, domain_names, wrf_domains)
+    main(wrfprd_path, domain_names, wrf_domains)
