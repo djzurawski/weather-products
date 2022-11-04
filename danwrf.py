@@ -103,12 +103,11 @@ def accumulated_swe_plots(
             lons, lats, swe_in, u10=u_10, v10=v_10, labels=labels, projection=projection
         )
 
-        domain_key = f"{domain_name}-{wrf_domain}"
-        if PRECIP_EXTENT.get(domain_key):
-            ax.set_extent(PRECIP_EXTENT.get(domain_key))
+        if PRECIP_EXTENT.get(domain_name):
+            ax.set_extent(PRECIP_EXTENT.get(domain_name))
 
-        if DOMAIN_LABELS.get(domain_key):
-            labels = DOMAIN_LABELS.get(domain_key)
+        if DOMAIN_LABELS.get(domain_name):
+            labels = DOMAIN_LABELS.get(domain_name)
             fig, ax = plot2.add_label_markers(fig, ax, labels)
 
         ax.set_title(title)
@@ -159,12 +158,11 @@ def accumulated_precip_plots(wrfprd_dir, domain_name, wrf_domain="d02", labels=[
             projection=projection,
         )
 
-        domain_key = f"{domain_name}-{wrf_domain}"
-        if PRECIP_EXTENT.get(domain_key):
-            ax.set_extent(PRECIP_EXTENT.get(domain_key))
+        if PRECIP_EXTENT.get(domain_name):
+            ax.set_extent(PRECIP_EXTENT.get(domain_name))
 
-        if DOMAIN_LABELS.get(domain_key):
-            labels = DOMAIN_LABELS.get(domain_key)
+        if DOMAIN_LABELS.get(domain_name):
+            labels = DOMAIN_LABELS.get(domain_name)
             fig, ax = plot2.add_label_markers(fig, ax, labels)
 
         ax.set_title(title)
