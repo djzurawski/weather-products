@@ -34,6 +34,13 @@ CO_LABELS = [
     ("Vail", (-106.37, 39.617)),
 ]
 
+
+PRECIP_EXTENT = {
+    "colorado5km-d01": [-126, -95, 50, 30],
+}
+DOMAIN_LABELS = {"summit1km-d01": CO_LABELS}
+
+
 # NC_DIR = '/home/dan/Documents/wrfprd'
 # NC_DIR = '/home/dan/Documents/wrfprd_ut'
 # IMAGE_DIR = "wrf_prod/images"
@@ -96,6 +103,14 @@ def accumulated_swe_plots(
             lons, lats, swe_in, u10=u_10, v10=v_10, labels=labels, projection=projection
         )
 
+        domain_key = f"{domain_name}-{wrf_domain}"
+        if PRECIP_EXTENT.get(domain_key):
+            ax.set_extent(PRECIP_EXTENT.get(domain_key))
+
+        if DOMAIN_LABELS.get(domain_key):
+            labels = DOMAIN_LABELS.get(domain_key)
+            fig, ax = plot2.add_label_markers(fig, ax, labels)
+
         ax.set_title(title)
         fig.savefig(
             f"wrf_prod/images/{cycle}z/{domain_name}-{cycle}z-swe-{fhour_str}.png",
@@ -143,6 +158,14 @@ def accumulated_precip_plots(wrfprd_dir, domain_name, wrf_domain="d02", labels=[
             labels=labels,
             projection=projection,
         )
+
+        domain_key = f"{domain_name}-{wrf_domain}"
+        if PRECIP_EXTENT.get(domain_key):
+            ax.set_extent(PRECIP_EXTENT.get(domain_key))
+
+        if DOMAIN_LABELS.get(domain_key):
+            labels = DOMAIN_LABELS.get(domain_key)
+            fig, ax = plot2.add_label_markers(fig, ax, labels)
 
         ax.set_title(title)
         fig.savefig(
@@ -336,9 +359,8 @@ def tst2():
 def tst3():
     accumulated_swe_plots(
         wrfprd_dir="/home/dan/Documents/weather/wrfprd/",
-        wrf_domain="d02",
-        labels=[],
-        central_longitude=-106.5,
+        domain_name="colorado5km",
+        wrf_domain="d01",
     )
 
 
